@@ -61,6 +61,4 @@ rsconnect/
 # Built Visual Studio Code Extensions
 *.vsix
 
-#User Gitignore:
-Chugh-Charitarth-Data/CarrierOnTimeReporting*/CarrierOnTimeReporting*.csv
-Chugh-Charitarth-Data/CarrierOnTimeReporting*/readme.html
+
