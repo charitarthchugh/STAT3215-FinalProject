@@ -1,0 +1,23 @@
+```{r setup}
+library(tidyverse)
+library(plyr)
+```
+
+Getting the compressed data, reading it, and filtering for missing values.
+
+```{r}
+data.dir <- "./Chugh-Charitarth-Data"
+df_list <- list()
+for (i in list.files(data.dir)) {
+  if (i != "readme.html") {
+    d <- read_csv(file.path(data.dir, i))
+    d <- d %>% filter(DepDelay > 15 & !is.na(NASDelay))
+    df_list[[i]] <- d
+  }
+}
+df <- ldply(df_list, rbind) # merge all the data frames into one.
+```
+```{r}
+write.csv(df, "filtered.csv")
+```
+
