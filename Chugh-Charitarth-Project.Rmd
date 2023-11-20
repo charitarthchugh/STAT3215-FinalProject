@@ -22,3 +22,6 @@ df <- df %>% select(DepDelay, CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDe
 ```{r}
 summary(df)
 ```
+```{r}
+head(df)
+```
