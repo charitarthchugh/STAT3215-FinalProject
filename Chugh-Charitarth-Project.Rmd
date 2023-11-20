@@ -1,6 +1,6 @@
 ```{r setup}
-library(tidyverse)
 library(plyr)
+library(tidyverse)
 ```
 
 Getting the compressed data, reading it, and filtering for missing values.
@@ -18,10 +18,7 @@ for (i in list.files(data.dir)) {
 df <- ldply(df_list, rbind) # merge all the data frames into one.
 df <- df %>% select(DepDelay, CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDelay, NASDelay, SecurityDelay, LateAircraftDelay)
 ```
-```{r}
-df <- df %>% select(DepDelay, CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDelay, NASDelay, SecurityDelay, LateAircraftDelay)
-```
-```{r}
-write.csv(df[c("DepDelay", "CarrierDelay", "TaxiIn", "TaxiOut", "Distance", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay")], "filtered2.csv")
-```
 
+```{r}
+summary(df)
+```
