@@ -1,11 +1,26 @@
+---
+title: 'STAT3215 Final Project: Analysis of Aircraft Flight Delay'
+author: "Charitarth Chugh (charitarth.chugh@uconn.edu), Leon Nguyen (leon.nguyen@uconn.edu)"
+date: "12/08/23"
+output: pdf_document
+---
 ```{r setup}
+knitr::opts_chunk$set(echo = TRUE)
 library(plyr)
 library(tidyverse)
 ```
 
-Getting the compressed data, reading it, and filtering for missing values.
+## Section 1. Introduction
+
+In this report, we will reproduce, analyze, and enhance findings from a research paper written by Kalliguddi and Leboulleuc, which seeks to investigate factors contributing to aircraft flight delays within the airline industry. The paper aims to analyze the on-time performance of domestic flights for the year 2016 and develop a better predictive model to forecast flight delay. This is important because flight delays can incur significant economic losses, damage reputability for airlines, and create inconvenience for passengers.
+
+The remainder of the report is divided into four sections as follows. Section 2 discusses the data description and data source. Section 3 describes the data analysis and predictive modeling techniques used in the study, delving into multiple linear regression, assumption validation, and other miscellaneous techniques. Section 4 describes our additional subanalyses and enhancement to the initial paper. Finally, section 5 provides conclusions and further discussion of the initial study and our enhancement.
+
+
 
 ```{r}
+# Getting the compressed data, reading it, and filtering for missing values.
+
 data.dir <- "./Chugh-Charitarth-Data"
 df_list <- list()
 for (i in list.files(data.dir)) {
