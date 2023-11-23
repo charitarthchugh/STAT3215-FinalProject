@@ -8,6 +8,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(plyr)
 library(tidyverse)
+library(psych)
 ```
 
 ## Section 1. Introduction
