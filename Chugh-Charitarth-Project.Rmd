@@ -1,6 +1,6 @@
 ---
 title: 'STAT3215 Final Project: Analysis of Aircraft Flight Delay'
-author: "Charitarth Chugh (charitarth.chugh@uconn.edu), Leon Nguyen (leon.nguyen@uconn.edu)"
+author: "Charitarth Chugh (charitarth@uconn.edu), Leon Nguyen (leon.nguyen@uconn.edu)"
 date: "12/08/23"
 output: pdf_document
 ---
@@ -27,12 +27,18 @@ df_list <- list()
 for (i in list.files(data.dir)) {
   if (i != "readme.html") {
     d <- read_csv(file.path(data.dir, i))
-    d <- d %>% filter(DepDelay > 15 & !is.na(NASDelay))
+    d <- d %>% filter(DepDelay > 15)
     df_list[[i]] <- d
+    sum_rows <- sum_rows + nrow(d)
   }
 }
 df <- ldply(df_list, rbind) # merge all the data frames into one.
-df <- df %>% select(DepDelay, CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDelay, NASDelay, SecurityDelay, LateAircraftDelay)
+df <- df %>% select(
+  DepDelay, CarrierDelay, TaxiIn, TaxiOut,
+  Distance, WeatherDelay, NASDelay,
+  SecurityDelay, LateAircraftDelay
+)
+df <- filter(df, !if_any(everything(), is.na))
 ```
 
 ```{r}
