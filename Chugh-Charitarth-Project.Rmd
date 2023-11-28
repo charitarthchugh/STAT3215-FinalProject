@@ -17,7 +17,15 @@ In this report, we will reproduce, analyze, and enhance findings from a research
 
 The remainder of the report is divided into four sections as follows. Section 2 discusses the data description and data source. Section 3 describes the data analysis and predictive modeling techniques used in the study, delving into multiple linear regression, assumption validation, and other miscellaneous techniques. Section 4 describes our additional subanalyses and enhancement to the initial paper. Finally, section 5 provides conclusions and further discussion of the initial study and our enhancement.
 
+## Section 2. Description of Data
 
+The data used in both the initial study and this report was obtained from the Bureau of Transportation Statistics (BTS) and analyzed the domestic flight activity from January 2016 to December 2016. BTS provides detailed data for individual flights with more than 23 variables. For the purposes of this research analysis, the study chose quantitative variables that were deemed relevant to measuring flight delay: Departure delay, Taxi in, Taxi out, Carrier delay, Security delay, Weather delay, Late aircraft delay, Distance, and National air system delay.
+
+The study design involved analyzing the on-time performance of domestic flights for the year 2016 and developing a better predictive model to forecast flight delay. The methods of data collection involved obtaining historical data from the BTS and cleaning and processing the data. Note that all missing values were imputed in the raw set; imputations using methods such as additive regression, bootstrapping, and predictive mean matching were done using the "Hmisc" package in R studio. For cross validation, the data was then divided into two parts, the first being the training data and the second being the test/holdout data. Because the authors of the paper observed and collected data on various factors that may contribute to flight delay as opposed to manipulating any variables or treatments, the initial study would be classified an observational study.
+
+To attempt to replicate the data included in this paper, one would need to obtain the same data set from the Bureau of Transportation Statistics and follow the same data cleaning and processing steps described in the paper. The study used R studio and the "Hmisc" package for data imputation, so these tools would also be necessary to replicate the study's results. However, because the specific procedure of how the dataset was cleaned and how the “Hmisc” package was utilized to impute values were not described in detail, we were limited in reproducibility. After noting this ambiguity and the large size of the raw dataset, for simplicity, we were advised to remove observations which contained any null values to work with a dataset of a manageable size instead of using imputation. We also noted that the Department of Transportation considers a flight to be delayed if it arrives or departs 15 minutes or more later than its scheduled time. In the raw dataset, if a given observation has a `DepDelay` value below 15 minutes, the relevant predictor variables were left as null values.
+
+To summarize, With the limited procedure information we were provided, we downloaded files from the BTS containing domestic flight information from each month of the year 2016, merged them, then cleaned the dataset for observations with null values and any flights that are not considered “delayed” in accordance with the 15 minute tolerance. 
 
 ```{r}
 # Getting the compressed data, reading it, and filtering for missing values.
@@ -43,6 +51,76 @@ df <- filter(df, !if_any(everything(), is.na))
 ```{r}
 summary(df)
 ```
+
 ```{r}
 head(df)
+nrow(df) # number of filtered observations
 ```
+
+## Section 3. Original Methods, Models, and Analysis
+
+Before beginning any preliminary analysis, we would need to split our clean, processed data into two sets: a training set would be used to construct and validate assumptions about our model, and a test/holdout set would be used to measure the predictive performance of the model. The original paper mentions splitting the data, but does not specify what proportion of data belongs to either set, nor how the sets are sampled. We will assume random sampling was used to generate the sets, and that 70% of the dataset was used for training and 30% for testing. The training set will be used for preliminary analysis.
+
+```{r}
+# splitting the dataset
+
+```
+
+### 3.1 Preliminary Analysis
+
+- Predictor Plot Correlation and Scatterplot Matrix
+
+### 3.2 Multiple Regression Model
+
+- define MLR, equation
+- run MLR with all 8 regressors
+- stepwise regression, forward/backward
+- RMSE
+- resulting equation
+- interpretation of coefficients
+
+#### 3.2.1 Residual Analysis
+
+- usage, definition, expectation
+- residual vs fitted values
+
+#### 3.2.2 Test for Normality
+
+- usage, definition, expectation
+- Normal Q-Q plot
+
+#### 3.2.3 Variance Inflation Factor (VIF)
+
+- usage, definition, expectation
+- VIF test
+
+#### 3.2.4 Outliers
+
+- why consider outliers
+- leverage values
+- Outliers with Bonferroni
+- Influential Observations with Cook's Distance
+
+### 3.3 Other Models
+
+- brief description of decision tree and random forest 
+
+## Section 4. Enhancement of Original Analysis
+
+- Transform regressors
+- Reassess normality and non-constant variance
+- Check residual plots
+- Use penalized regression to find an MLR model that performs just as well or better with less regressors: Forward/Backward stepwise (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
+-	Evaluate the model’s predictive ability for each regularized model: MSE, MAE, VEcv
+
+- inferences from MLR with test data, ANOVA
+
+## Section 5. Discussion and Conclusion
+
+- discrepancies between what we produced and what was in the original paper
+- are assumptions met/reasonably satisfied from section 3
+-	What conclusions were drawn and are they adequately supported?
+
+## References:
+
+- cite original paper
