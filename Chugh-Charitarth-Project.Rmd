@@ -31,15 +31,15 @@ To summarize, With the limited procedure information we were provided, we downlo
 # Getting the compressed data, reading it, and filtering for missing values.
 
 data.dir <- "./Chugh-Charitarth-Data"
-df_list <- list()
+df.list <- list()
 for (i in list.files(data.dir)) {
   if (i != "readme.html") {
-    d <- read_csv(file.path(data.dir, i))
+    d <- read_csv(file.path(data.dir, i), show_col_types = FALSE) # Using show_col_types=FALSE to mute extra output
     d <- d %>% filter(DepDelay > 15)
-    df_list[[i]] <- d
+    df.list[[i]] <- d
   }
 }
-df <- ldply(df_list, rbind) # merge all the data frames into one.
+df <- ldply(df.list, rbind) # merge all the data frames into one.
 df <- df %>% select(
   DepDelay, CarrierDelay, TaxiIn, TaxiOut,
   Distance, WeatherDelay, NASDelay,
@@ -63,7 +63,6 @@ Before beginning any preliminary analysis, we would need to split our clean, pro
 
 ```{r}
 # splitting the dataset
-
 ```
 
 ### 3.1 Preliminary Analysis
