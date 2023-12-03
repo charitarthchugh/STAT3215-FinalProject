@@ -69,6 +69,18 @@ Before beginning any preliminary analysis, we would need to split our clean, pro
 
 - Predictor Plot Correlation and Scatterplot Matrix
 
+```{r}
+pairs.panels(df_train, ellipses=FALSE, hist.col = "cyan",
+method = "pearson", density = TRUE)
+```
+
+
+The Pearson correlation coefficient (denoted as $r$) is used to measure the strength of a linear association between two variables. This value can range from -1 to 1, where magnitude indicates the strength and the signage indicates directionality. For example, in figure {}, we can find the $r$ value based on where the row of one variable and the column of the other variable intersect. Based on our training dataset, the variables `Var1` and `Var2` have a Pearson’s constant of {}, indicating a {weak/moderate/strong positive/negative} linear correlation. Utilizing Pearson’s constant is a good way of assessing whether there is the issue of multicollinearity, where regressors are highly correlated or are dependent with each other, indicated by large values of $r$. Multicollinearity can inflate the variance and result in potentially misleading conclusions regarding contributions of the regressors. The original paper uses the value of 0.5 as the threshold for indicating collinearity; the authors observe that since no value of $r$ between any two variables are larger than 0.5, it is assumed that all the variables are independent. 
+
+Scatterplots are utilized to plot two variables against each other to analyze any patterns and see if there is anything that may suggest a relationship between the two. In figure {}, we can analyze the scatterplot of the variables `Var1` and `Var2` with a Pearson’s constant of {}. We can observe visually in the associated scatterplot that the observations tend to be {clustered randomly/follow a vague/distinct linear pattern}, which agrees with the Pearson’s constant. Randomness in the scatterplot indicates no relationship, while linear patterns may imply a linear relationship. The strength of the linear relationship is indicated by the clarity of the linear pattern; for example, a perfect straight line of observations with no deviations would indicate a perfect linear correlation between two variables.  In the original paper, scatterplots comparing regressors appear to not have a distinguishable pattern that would imply a linear relationship, although it is worth noting that most observations tend to adhere close to the axes. 
+
+Our training data {generally disagrees/agrees….} with their findings… Based on our training set, we {also?} observe that {???}
+
 ### 3.2 Multiple Regression Model
 
 - define MLR, equation
