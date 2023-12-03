@@ -63,6 +63,9 @@ Before beginning any preliminary analysis, we would need to split our clean, pro
 
 ```{r}
 # splitting the dataset
+# splitting the dataset
+df_train <- dplyr::sample_frac(df, 0.7)
+df_test <- dplyr::anti_join(df, df_train, by = "id")
 ```
 
 ### 3.1 Preliminary Analysis
