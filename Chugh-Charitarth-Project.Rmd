@@ -63,7 +63,6 @@ Before beginning any preliminary analysis, we would need to split our clean, pro
 
 ```{r}
 # splitting the dataset
-# splitting the dataset
 df_train <- dplyr::sample_frac(df, 0.7)
 df_test <- dplyr::anti_join(df, df_train, by = "id")
 ```
@@ -73,8 +72,10 @@ df_test <- dplyr::anti_join(df, df_train, by = "id")
 - Predictor Plot Correlation and Scatterplot Matrix
 
 ```{r}
-pairs.panels(df_train, ellipses=FALSE, hist.col = "cyan",
-method = "pearson", density = TRUE)
+pairs.panels(df_train,
+  ellipses = FALSE, hist.col = "cyan",
+  method = "pearson", density = TRUE
+)
 ```
 
 
@@ -87,8 +88,29 @@ Our training data {generally disagrees/agrees….} with their findings… Based 
 ### 3.2 Multiple Regression Model
 
 - define MLR, equation
+
+An MLR (Multiple Linear Regression) model predicts a quantitative response $Y$ (in this case, the length of Departure Delay measured by `DepDelay`) based on two or more predictor variables, either categorical or quantitative. We can only use this model on the assumption that there exists some linear relationship between the regressors and $Y$. We can express this relationship as a mathematical equation:
+
+$$ y = \beta_{0} + \sum\limits_{i=1}^{m}\beta_{i}x_{i} + \epsilon $$
+
+In the original report and in this paper, there are no categorical variables to analyze so no numeric encoding is necessary. When regression is run with all eight quantitative regressors, we observed that all of the variables were significant with an r-square of {}; which is similar to the result{?} from the original paper (with an r-squared value of 0.84). Note that since we do not the exact training dataset used, reproducibility is limited, so we accept approximate results when attempting to replicate the procedure. This indicates that the initial main MLR model can explain {}% of the variation in the data. 
+
+
 - run MLR with all 8 regressors
+
+```{r}
+summary(m1)
+```
+
 - stepwise regression, forward/backward
+
+We can apply a stepwise regression (in both directions) to determine if results will agree with the initial main MLR model. Note that the initial direction of the stepwise regression performed in the initial paper was ambiguous, so both are conducted in the below code.
+```{r}
+m1 <- lm(DepDelay ~ ., data = df_train)
+step(m1, direction = "both")
+step(lm(DepDelay ~ 1, data = df_train), scope = list(upper = m1), direction = "both")
+```
+
 - RMSE
 - resulting equation
 - interpretation of coefficients
@@ -97,16 +119,28 @@ Our training data {generally disagrees/agrees….} with their findings… Based 
 
 - usage, definition, expectation
 - residual vs fitted values
+```{r}
+residualPlots(m1, type = "rstudent")
+```
 
 #### 3.2.2 Test for Normality
 
 - usage, definition, expectation
 - Normal Q-Q plot
+```{r}
+ti <- rstudent(m3a)
+par(mfrow = c(1, 2))
+qqnorm(ti)
+qqline(ti)
+```
 
 #### 3.2.3 Variance Inflation Factor (VIF)
 
 - usage, definition, expectation
 - VIF test
+```{r}
+vif(m1)
+```
 
 #### 3.2.4 Outliers
 
@@ -114,6 +148,9 @@ Our training data {generally disagrees/agrees….} with their findings… Based 
 - leverage values
 - Outliers with Bonferroni
 - Influential Observations with Cook's Distance
+```{r}
+influenceIndexPlot(m1) # first and third subplot
+```
 
 ### 3.3 Other Models
 
