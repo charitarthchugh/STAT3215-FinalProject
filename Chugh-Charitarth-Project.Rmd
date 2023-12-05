@@ -9,6 +9,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(plyr)
 library(tidyverse)
 library(psych)
+library(car)
+library(alr4)
 ```
 
 ## Section 1. Introduction
@@ -63,8 +65,9 @@ Before beginning any preliminary analysis, we would need to split our clean, pro
 
 ```{r}
 # splitting the dataset
-df_train <- dplyr::sample_frac(df, 0.7)
-df_test <- dplyr::anti_join(df, df_train, by = "id")
+index <- sample(seq_len(nrow(df)), 0.7 * nrow(df))
+df_train <- df[index, ]
+df_train <- df[-index, ]
 ```
 
 ### 3.1 Preliminary Analysis
@@ -99,6 +102,7 @@ In the original report and in this paper, there are no categorical variables to 
 - run MLR with all 8 regressors
 
 ```{r}
+m1 <- lm(DepDelay ~ ., data = df_train)
 summary(m1)
 ```
 
@@ -106,7 +110,6 @@ summary(m1)
 
 We can apply a stepwise regression (in both directions) to determine if results will agree with the initial main MLR model. Note that the initial direction of the stepwise regression performed in the initial paper was ambiguous, so both are conducted in the below code.
 ```{r}
-m1 <- lm(DepDelay ~ ., data = df_train)
 step(m1, direction = "both")
 step(lm(DepDelay ~ 1, data = df_train), scope = list(upper = m1), direction = "both")
 ```
@@ -128,7 +131,7 @@ residualPlots(m1, type = "rstudent")
 - usage, definition, expectation
 - Normal Q-Q plot
 ```{r}
-ti <- rstudent(m3a)
+ti <- rstudent(m1)
 par(mfrow = c(1, 2))
 qqnorm(ti)
 qqline(ti)
@@ -139,7 +142,7 @@ qqline(ti)
 - usage, definition, expectation
 - VIF test
 ```{r}
-vif(m1)
+car::vif(m1)
 ```
 
 #### 3.2.4 Outliers
@@ -149,17 +152,31 @@ vif(m1)
 - Outliers with Bonferroni
 - Influential Observations with Cook's Distance
 ```{r}
-influenceIndexPlot(m1) # first and third subplot
+car::influenceIndexPlot(m1) # first and third subplot
 ```
-
 ### 3.3 Other Models
+#### Decision Tree
+A decision tree is a supervised machine learning algorithm used for both classification and regression tasks. It models decisions based on a series of questions or conditions and represents them in a tree-like structure. 
+Each internal node of the tree represents a decision based on a specific feature, and each branch represents the possible outcomes of the decision. The leaves of the tree represent the final decision or the predicted output.
 
-- brief description of decision tree and random forest 
+The decision-making process involves recursively partitioning the data based on the features until a stopping condition is met, such as a maximum depth or a minimum number of data points in a leaf node. 
+Decision trees are intuitive, easy to interpret, and can handle both numerical and categorical data.
+
+A random forest is an ensemble learning method that builds multiple decision trees and merges their predictions to improve overall performance and robustness. It operates by constructing a multitude of decision trees during training and outputting the class that is the mode of the classes (classification) or mean prediction (regression) of the individual trees.
 
 ## Section 4. Enhancement of Original Analysis
-
+- Assess Non Constant Variance
+```{r}
+car::ncvTest(m1)
+```
 - Transform regressors
+```{r}
+
+```
 - Reassess normality and non-constant variance
+```{r}
+
+```
 - Check residual plots
 - Use penalized regression to find an MLR model that performs just as well or better with less regressors: Forward/Backward stepwise (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
 -	Evaluate the model’s predictive ability for each regularized model: MSE, MAE, VEcv
