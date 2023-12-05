@@ -208,4 +208,12 @@ car::ncvTest(m1)
 
 ## References:
 
--   cite original paper
+Original Paper:
+```bibtex
+ @article{kalliguddi_leboulluec_2017, 
+ title={Predictive Modeling of Aircraft Flight Delay}, 
+ volume={5}, DOI={https://doi.org/10.13189/ujm.2017.051003}, 
+ number={10}, journal={Universal Journal of Management}, 
+ author={Kalliguddi, Anish M. and Leboulluec, Aera K.}, 
+ year={2017}, month={Oct}, pages={485–491} }
+```
