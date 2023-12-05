@@ -6,6 +6,7 @@ output:
   html_document:
     df_print: paged
 ---
+
 ```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
 library(plyr)
@@ -28,9 +29,9 @@ The data used in both the initial study and this report was obtained from the Bu
 
 The study design involved analyzing the on-time performance of domestic flights for the year 2016 and developing a better predictive model to forecast flight delay. The methods of data collection involved obtaining historical data from the BTS and cleaning and processing the data. Note that all missing values were imputed in the raw set; imputations using methods such as additive regression, bootstrapping, and predictive mean matching were done using the "Hmisc" package in R studio. For cross validation, the data was then divided into two parts, the first being the training data and the second being the test/holdout data. Because the authors of the paper observed and collected data on various factors that may contribute to flight delay as opposed to manipulating any variables or treatments, the initial study would be classified an observational study.
 
-To attempt to replicate the data included in this paper, one would need to obtain the same data set from the Bureau of Transportation Statistics and follow the same data cleaning and processing steps described in the paper. The study used R studio and the "Hmisc" package for data imputation, so these tools would also be necessary to replicate the study's results. However, because the specific procedure of how the dataset was cleaned and how the “Hmisc” package was utilized to impute values were not described in detail, we were limited in reproducibility. After noting this ambiguity and the large size of the raw dataset, for simplicity, we were advised to remove observations which contained any null values to work with a dataset of a manageable size instead of using imputation. We also noted that the Department of Transportation considers a flight to be delayed if it arrives or departs 15 minutes or more later than its scheduled time. In the raw dataset, if a given observation has a `DepDelay` value below 15 minutes, the relevant predictor variables were left as null values.
+To attempt to replicate the data included in this paper, one would need to obtain the same data set from the Bureau of Transportation Statistics and follow the same data cleaning and processing steps described in the paper. The study used R studio and the "Hmisc" package for data imputation, so these tools would also be necessary to replicate the study's results. However, because the specific procedure of how the dataset was cleaned and how the "Hmisc" package was utilized to impute values were not described in detail, we were limited in reproducibility. After noting this ambiguity and the large size of the raw dataset, for simplicity, we were advised to remove observations which contained any null values to work with a dataset of a manageable size instead of using imputation. We also noted that the Department of Transportation considers a flight to be delayed if it arrives or departs 15 minutes or more later than its scheduled time. In the raw dataset, if a given observation has a `DepDelay` value below 15 minutes, the relevant predictor variables were left as null values.
 
-To summarize, With the limited procedure information we were provided, we downloaded files from the BTS containing domestic flight information from each month of the year 2016, merged them, then cleaned the dataset for observations with null values and any flights that are not considered “delayed” in accordance with the 15 minute tolerance. 
+To summarize, With the limited procedure information we were provided, we downloaded files from the BTS containing domestic flight information from each month of the year 2016, merged them, then cleaned the dataset for observations with null values and any flights that are not considered "delayed" in accordance with the 15 minute tolerance.
 
 ```{r}
 # Getting the compressed data, reading it, and filtering for missing values.
@@ -75,7 +76,7 @@ df_train <- df[-index, ]
 
 ### 3.1 Preliminary Analysis
 
-- Predictor Plot Correlation and Scatterplot Matrix
+-   Predictor Plot Correlation and Scatterplot Matrix
 
 ```{r}
 pairs.panels(df_train,
@@ -84,55 +85,56 @@ pairs.panels(df_train,
 )
 ```
 
+The Pearson correlation coefficient (denoted as $r$) is used to measure the strength of a linear association between two variables. This value can range from -1 to 1, where magnitude indicates the strength and the signage indicates directionality. For example, in figure {}, we can find the $r$ value based on where the row of one variable and the column of the other variable intersect. Based on our training dataset, the variables `Var1` and `Var2` have a Pearson's constant of {}, indicating a {weak/moderate/strong positive/negative} linear correlation. Utilizing Pearson's constant is a good way of assessing whether there is the issue of multicollinearity, where regressors are highly correlated or are dependent with each other, indicated by large values of $r$. Multicollinearity can inflate the variance and result in potentially misleading conclusions regarding contributions of the regressors. The original paper uses the value of 0.5 as the threshold for indicating collinearity; the authors observe that since no value of $r$ between any two variables are larger than 0.5, it is assumed that all the variables are independent.
 
-The Pearson correlation coefficient (denoted as $r$) is used to measure the strength of a linear association between two variables. This value can range from -1 to 1, where magnitude indicates the strength and the signage indicates directionality. For example, in figure {}, we can find the $r$ value based on where the row of one variable and the column of the other variable intersect. Based on our training dataset, the variables `Var1` and `Var2` have a Pearson’s constant of {}, indicating a {weak/moderate/strong positive/negative} linear correlation. Utilizing Pearson’s constant is a good way of assessing whether there is the issue of multicollinearity, where regressors are highly correlated or are dependent with each other, indicated by large values of $r$. Multicollinearity can inflate the variance and result in potentially misleading conclusions regarding contributions of the regressors. The original paper uses the value of 0.5 as the threshold for indicating collinearity; the authors observe that since no value of $r$ between any two variables are larger than 0.5, it is assumed that all the variables are independent. 
+Scatterplots are utilized to plot two variables against each other to analyze any patterns and see if there is anything that may suggest a relationship between the two. In figure {}, we can analyze the scatterplot of the variables `Var1` and `Var2` with a Pearson's constant of {}. We can observe visually in the associated scatterplot that the observations tend to be {clustered randomly/follow a vague/distinct linear pattern}, which agrees with the Pearson's constant. Randomness in the scatterplot indicates no relationship, while linear patterns may imply a linear relationship. The strength of the linear relationship is indicated by the clarity of the linear pattern; for example, a perfect straight line of observations with no deviations would indicate a perfect linear correlation between two variables. In the original paper, scatterplots comparing regressors appear to not have a distinguishable pattern that would imply a linear relationship, although it is worth noting that most observations tend to adhere close to the axes.
 
-Scatterplots are utilized to plot two variables against each other to analyze any patterns and see if there is anything that may suggest a relationship between the two. In figure {}, we can analyze the scatterplot of the variables `Var1` and `Var2` with a Pearson’s constant of {}. We can observe visually in the associated scatterplot that the observations tend to be {clustered randomly/follow a vague/distinct linear pattern}, which agrees with the Pearson’s constant. Randomness in the scatterplot indicates no relationship, while linear patterns may imply a linear relationship. The strength of the linear relationship is indicated by the clarity of the linear pattern; for example, a perfect straight line of observations with no deviations would indicate a perfect linear correlation between two variables.  In the original paper, scatterplots comparing regressors appear to not have a distinguishable pattern that would imply a linear relationship, although it is worth noting that most observations tend to adhere close to the axes. 
-
-Our training data {generally disagrees/agrees….} with their findings… Based on our training set, we {also?} observe that {???}
+Our training data {generally disagrees/agrees....} with their findings... Based on our training set, we {also?} observe that {???}
 
 ### 3.2 Multiple Regression Model
 
-- define MLR, equation
+-   define MLR, equation
 
 An MLR (Multiple Linear Regression) model predicts a quantitative response $Y$ (in this case, the length of Departure Delay measured by `DepDelay`) based on two or more predictor variables, either categorical or quantitative. We can only use this model on the assumption that there exists some linear relationship between the regressors and $Y$. We can express this relationship as a mathematical equation:
 
 $$ y = \beta_{0} + \sum\limits_{i=1}^{m}\beta_{i}x_{i} + \epsilon $$
 
-In the original report and in this paper, there are no categorical variables to analyze so no numeric encoding is necessary. When regression is run with all eight quantitative regressors, we observed that all of the variables were significant with an r-square of {}; which is similar to the result{?} from the original paper (with an r-squared value of 0.84). Note that since we do not the exact training dataset used, reproducibility is limited, so we accept approximate results when attempting to replicate the procedure. This indicates that the initial main MLR model can explain {}% of the variation in the data. 
+In the original report and in this paper, there are no categorical variables to analyze so no numeric encoding is necessary. When regression is run with all eight quantitative regressors, we observed that all of the variables were significant with an r-square of {}; which is similar to the result{?} from the original paper (with an r-squared value of 0.84). Note that since we do not the exact training dataset used, reproducibility is limited, so we accept approximate results when attempting to replicate the procedure. This indicates that the initial main MLR model can explain {}% of the variation in the data.
 
-
-- run MLR with all 8 regressors
+-   run MLR with all 8 regressors
 
 ```{r}
 m1 <- lm(DepDelay ~ ., data = df_train)
 summary(m1)
 ```
 
-- stepwise regression, forward/backward
+-   stepwise regression, forward/backward
 
 We can apply a stepwise regression (in both directions) to determine if results will agree with the initial main MLR model. Note that the initial direction of the stepwise regression performed in the initial paper was ambiguous, so both are conducted in the below code.
+
 ```{r}
 step(m1, direction = "both")
 step(lm(DepDelay ~ 1, data = df_train), scope = list(upper = m1), direction = "both")
 ```
 
-- RMSE
-- resulting equation
-- interpretation of coefficients
+-   RMSE
+-   resulting equation
+-   interpretation of coefficients
 
 #### 3.2.1 Residual Analysis
 
-- usage, definition, expectation
-- residual vs fitted values
+-   usage, definition, expectation
+-   residual vs fitted values
+
 ```{r}
 residualPlots(m1, type = "rstudent")
 ```
 
 #### 3.2.2 Test for Normality
 
-- usage, definition, expectation
-- Normal Q-Q plot
+-   usage, definition, expectation
+-   Normal Q-Q plot
+
 ```{r}
 ti <- rstudent(m1)
 par(mfrow = c(1, 2))
@@ -142,56 +144,68 @@ qqline(ti)
 
 #### 3.2.3 Variance Inflation Factor (VIF)
 
-- usage, definition, expectation
-- VIF test
+-   usage, definition, expectation
+-   VIF test
+
 ```{r}
 car::vif(m1)
 ```
 
 #### 3.2.4 Outliers
 
-- why consider outliers
-- leverage values
-- Outliers with Bonferroni
-- Influential Observations with Cook's Distance
+-   why consider outliers
+-   leverage values
+-   Outliers with Bonferroni
+-   Influential Observations with Cook's Distance
+
 ```{r}
 car::influenceIndexPlot(m1) # first and third subplot
 ```
-### 3.3 Other Models
-#### Decision Tree
-A decision tree is a supervised machine learning algorithm used for both classification and regression tasks. It models decisions based on a series of questions or conditions and represents them in a tree-like structure. 
-Each internal node of the tree represents a decision based on a specific feature, and each branch represents the possible outcomes of the decision. The leaves of the tree represent the final decision or the predicted output.
 
-The decision-making process involves recursively partitioning the data based on the features until a stopping condition is met, such as a maximum depth or a minimum number of data points in a leaf node. 
-Decision trees are intuitive, easy to interpret, and can handle both numerical and categorical data.
+### 3.3 Other Models
+
+#### Decision Tree
+
+A decision tree is a supervised machine learning algorithm used for both classification and regression tasks. It models decisions based on a series of questions or conditions and represents them in a tree-like structure. Each internal node of the tree represents a decision based on a specific feature, and each branch represents the possible outcomes of the decision. The leaves of the tree represent the final decision or the predicted output.
+
+The decision-making process involves recursively partitioning the data based on the features until a stopping condition is met, such as a maximum depth or a minimum number of data points in a leaf node. Decision trees are intuitive, easy to interpret, and can handle both numerical and categorical data.
 
 A random forest is an ensemble learning method that builds multiple decision trees and merges their predictions to improve overall performance and robustness. It operates by constructing a multitude of decision trees during training and outputting the class that is the mode of the classes (classification) or mean prediction (regression) of the individual trees.
 
 ## Section 4. Enhancement of Original Analysis
-- Assess Non Constant Variance
+
+-   Assess Non Constant Variance
+
 ```{r}
 car::ncvTest(m1)
 ```
-- Transform regressors
+
+-   Transform regressors
+
 ```{r}
 
 ```
-- Reassess normality and non-constant variance
+
+-   Reassess normality and non-constant variance
+
 ```{r}
 
 ```
-- Check residual plots
-- Use penalized regression to find an MLR model that performs just as well or better with less regressors: Forward/Backward stepwise (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
--	Evaluate the model’s predictive ability for each regularized model: MSE, MAE, VEcv
 
-- inferences from MLR with test data, ANOVA
+-   Check residual plots
+
+-   Use penalized regression to find an MLR model that performs just as well or better with less regressors: Forward/Backward stepwise (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
+
+-   Evaluate the model's predictive ability for each regularized model: MSE, MAE, VEcv
+
+-   inferences from MLR with test data, ANOVA
 
 ## Section 5. Discussion and Conclusion
 
-- discrepancies between what we produced and what was in the original paper
-- are assumptions met/reasonably satisfied from section 3
--	What conclusions were drawn and are they adequately supported?
+-   discrepancies between what we produced and what was in the original paper
+-   are assumptions met/reasonably satisfied from section 3
+-   What conclusions were drawn and are they adequately supported?
 
 ## References:
 
-- cite original paper
+-   cite original paper
