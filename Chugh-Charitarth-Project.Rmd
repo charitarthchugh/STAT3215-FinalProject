@@ -2,7 +2,9 @@
 title: 'STAT3215 Final Project: Analysis of Aircraft Flight Delay'
 author: "Charitarth Chugh (charitarth@uconn.edu), Leon Nguyen (leon.nguyen@uconn.edu)"
 date: "12/08/23"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 ```{r setup}
 knitr::opts_chunk$set(echo = TRUE)
@@ -11,6 +13,7 @@ library(tidyverse)
 library(psych)
 library(car)
 library(alr4)
+set.seed(3215)
 ```
 
 ## Section 1. Introduction
