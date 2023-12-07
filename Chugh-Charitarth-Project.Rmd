@@ -83,12 +83,14 @@ df_test <- dplyr::anti_join(df, df_train)
 df <- NULL # Save RAM
 gc()
 ```
-
+```{r}
+df_train_shifted = data.frame(lapply(df_train,function(x) x+0.001))
+```
 ### 3.1 Preliminary Analysis
 
 -   Predictor Plot Correlation and Scatterplot Matrix
 
-```{r pairs-panels, cache=TRUE}
+```{r pairs-panels, cache=TRUE, eval=FALSE}
 pairs.panels(df_train,
   ellipses = FALSE, hist.col = "cyan",
   method = "pearson", density = TRUE
@@ -191,7 +193,9 @@ A random forest is an ensemble learning method that builds multiple decision tre
 ```{r cache=TRUE}
 car::ncvTest(m1)
 ```
-
+```{r}
+which(outlierTest(m1, n.max=999999)$rstudent)
+```
 Based on the test for non-constant variance, we are able to reject the null hypothesis - We cannot assume constant variance in this model. - Transform regressors
 
 ```{r cache=TRUE}
@@ -202,19 +206,23 @@ summary(pT)
 testTransform(pT)
 ```
 
-```{r cache=True}
+```{r cache=True ti}
 pT <- powerTransform(
   cbind(
     CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDelay,
     NASDelay, SecurityDelay, LateAircraftDelay
   ) ~ 1,
-  data = df_train, family = "bcnPower"
+  data = filter(df_train_shifted, SecurityDelay<10), family = "bcPower"
 )
+
 ```
 
 ```{r}
 summary(pT)
 testTransform(pT, lambda = c(0, -1, 0, 0, -3, 0, -3, 0))
+```
+```{r}
+
 ```
 
 -   Reassess normality and non-constant variance
@@ -226,7 +234,7 @@ testTransform(pT, lambda = c(0, -1, 0, 0, -3, 0, -3, 0))
 -   Check residual plots
 
 ```{r}
-
+summary(df_train)
 ```
 
 -   Use penalized regression to find an MLR model that performs just as well or better with less regressors: Forward/Backward stepwise (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
