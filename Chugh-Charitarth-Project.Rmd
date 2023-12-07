@@ -8,12 +8,17 @@ output:
 ---
 
 ```{r setup}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, cache = TRUE)
 knitr::opts_chunk$set(echo = TRUE)
 library(plyr)
 library(tidyverse)
 library(psych)
 library(car)
 library(alr4)
+library(glmnet)
+library(ncvreg)
+library(leaps)
+
 set.seed(3215)
 ```
 
@@ -33,25 +38,29 @@ To attempt to replicate the data included in this paper, one would need to obtai
 
 To summarize, With the limited procedure information we were provided, we downloaded files from the BTS containing domestic flight information from each month of the year 2016, merged them, then cleaned the dataset for observations with null values and any flights that are not considered "delayed" in accordance with the 15 minute tolerance.
 
-```{r}
+```{r load-data, results="hide", echo=TRUE, cache=TRUE}
 # Getting the compressed data, reading it, and filtering for missing values.
-
-data.dir <- "./Chugh-Charitarth-Data"
-df.list <- list()
-for (i in list.files(data.dir)) {
-  if (i != "readme.html") {
-    d <- read_csv(file.path(data.dir, i), show_col_types = FALSE) # Using show_col_types=FALSE to mute extra output
-    d <- d %>% filter(DepDelay > 15)
-    df.list[[i]] <- d
+# its in its own function as a RAM saving measure.
+load_data <- function() {
+  data_dir <- "./Chugh-Charitarth-Data"
+  df_list <- list()
+  for (i in list.files(data_dir)) {
+    if (i != "readme.html") {
+      # Using show_col_types=FALSE to mute extra output
+      d <- readr::read_csv(file.path(data_dir, i), show_col_types = FALSE)
+      d <- d %>% filter(DepDelay > 15)
+      df_list[[i]] <- d
+    }
   }
+  df <- plyr::ldply(df_list, rbind) # merge all the data frames into one.
+  df <- df %>% select(
+    DepDelay, CarrierDelay, TaxiIn, TaxiOut,
+    Distance, WeatherDelay, NASDelay,
+    SecurityDelay, LateAircraftDelay
+  )
+  df <- filter(df, !dplyr::if_any(dplyr::everything(), is.na))
 }
-df <- ldply(df.list, rbind) # merge all the data frames into one.
-df <- df %>% select(
-  DepDelay, CarrierDelay, TaxiIn, TaxiOut,
-  Distance, WeatherDelay, NASDelay,
-  SecurityDelay, LateAircraftDelay
-)
-df <- filter(df, !if_any(everything(), is.na))
+df <- load_data()
 ```
 
 ```{r}
@@ -67,18 +76,19 @@ nrow(df) # number of filtered observations
 
 Before beginning any preliminary analysis, we would need to split our clean, processed data into two sets: a training set would be used to construct and validate assumptions about our model, and a test/holdout set would be used to measure the predictive performance of the model. The original paper mentions splitting the data, but does not specify what proportion of data belongs to either set, nor how the sets are sampled. We will assume random sampling was used to generate the sets, and that 70% of the dataset was used for training and 30% for testing. The training set will be used for preliminary analysis.
 
-```{r}
+```{r split-test-train, cache=TRUE}
 # splitting the dataset
-index <- sample(seq_len(nrow(df)), 0.7 * nrow(df))
-df_train <- df[index, ]
-df_train <- df[-index, ]
+df_train <- dplyr::sample_frac(df, 0.70)
+df_test <- dplyr::anti_join(df, df_train)
+df <- NULL # Save RAM
+gc()
 ```
 
 ### 3.1 Preliminary Analysis
 
 -   Predictor Plot Correlation and Scatterplot Matrix
 
-```{r}
+```{r pairs-panels, cache=TRUE}
 pairs.panels(df_train,
   ellipses = FALSE, hist.col = "cyan",
   method = "pearson", density = TRUE
@@ -103,7 +113,7 @@ In the original report and in this paper, there are no categorical variables to 
 
 -   run MLR with all 8 regressors
 
-```{r}
+```{r cache=TRUE}
 m1 <- lm(DepDelay ~ ., data = df_train)
 summary(m1)
 ```
@@ -112,9 +122,11 @@ summary(m1)
 
 We can apply a stepwise regression (in both directions) to determine if results will agree with the initial main MLR model. Note that the initial direction of the stepwise regression performed in the initial paper was ambiguous, so both are conducted in the below code.
 
-```{r}
+```{r stepwiseRegression, cache=TRUE}
 step(m1, direction = "both")
-step(lm(DepDelay ~ 1, data = df_train), scope = list(upper = m1), direction = "both")
+step(lm(DepDelay ~ 1, data = df_train),
+  scope = list(upper = m1), direction = "both"
+)
 ```
 
 -   RMSE
@@ -126,7 +138,7 @@ step(lm(DepDelay ~ 1, data = df_train), scope = list(upper = m1), direction = "b
 -   usage, definition, expectation
 -   residual vs fitted values
 
-```{r}
+```{r residualPlotsUntransformed, cache=TRUE}
 residualPlots(m1, type = "rstudent")
 ```
 
@@ -135,7 +147,7 @@ residualPlots(m1, type = "rstudent")
 -   usage, definition, expectation
 -   Normal Q-Q plot
 
-```{r}
+```{r qq-plot, cache=TRUE}
 ti <- rstudent(m1)
 par(mfrow = c(1, 2))
 qqnorm(ti)
@@ -147,7 +159,7 @@ qqline(ti)
 -   usage, definition, expectation
 -   VIF test
 
-```{r}
+```{r cache=TRUE}
 car::vif(m1)
 ```
 
@@ -158,7 +170,7 @@ car::vif(m1)
 -   Outliers with Bonferroni
 -   Influential Observations with Cook's Distance
 
-```{r}
+```{r influenceIndexPlot, cache=TRUE}
 car::influenceIndexPlot(m1) # first and third subplot
 ```
 
@@ -176,14 +188,33 @@ A random forest is an ensemble learning method that builds multiple decision tre
 
 -   Assess Non Constant Variance
 
-```{r}
+```{r cache=TRUE}
 car::ncvTest(m1)
 ```
 
--   Transform regressors
+Based on the test for non-constant variance, we are able to reject the null hypothesis - We cannot assume constant variance in this model. - Transform regressors
+
+```{r cache=TRUE}
+pT <- powerTransform(DepDelay ~ CarrierDelay + TaxiIn + TaxiOut +
+  Distance + WeatherDelay + NASDelay +
+  SecurityDelay + LateAircraftDelay, df_train)
+summary(pT)
+testTransform(pT)
+```
+
+```{r cache=True}
+pT <- powerTransform(
+  cbind(
+    CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDelay,
+    NASDelay, SecurityDelay, LateAircraftDelay
+  ) ~ 1,
+  data = df_train, family = "bcnPower"
+)
+```
 
 ```{r}
-
+summary(pT)
+testTransform(pT, lambda = c(0, -1, 0, 0, -3, 0, -3, 0))
 ```
 
 -   Reassess normality and non-constant variance
@@ -194,11 +225,20 @@ car::ncvTest(m1)
 
 -   Check residual plots
 
+```{r}
+
+```
+
 -   Use penalized regression to find an MLR model that performs just as well or better with less regressors: Forward/Backward stepwise (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
 
--   Evaluate the model's predictive ability for each regularized model: MSE, MAE, VEcv
+-   Evaluate the model's predictive ability for each regularized model: MSE, MAE, VEcv tmp \<- df_train[, -1]
 
 -   inferences from MLR with test data, ANOVA
+
+```{r}
+# bestmodel <- lm(DepDelay ~ BESTREGRESSORS, data = df_test)
+# Anova(bestmodel, type = "III")
+```
 
 ## Section 5. Discussion and Conclusion
 
@@ -209,11 +249,16 @@ car::ncvTest(m1)
 ## References:
 
 Original Paper:
-```bibtex
+
+``` bibtex
  @article{kalliguddi_leboulluec_2017, 
  title={Predictive Modeling of Aircraft Flight Delay}, 
  volume={5}, DOI={https://doi.org/10.13189/ujm.2017.051003}, 
  number={10}, journal={Universal Journal of Management}, 
  author={Kalliguddi, Anish M. and Leboulluec, Aera K.}, 
  year={2017}, month={Oct}, pages={485–491} }
+```
+MLA citation:
+```
+Kalliguddi, Anish M., and Aera K. Leboulluec. “Predictive Modeling of Aircraft Flight Delay.” Universal Journal of Management, vol. 5, no. 10, Oct. 2017, pp. 485–91, https://doi.org/10.13189/ujm.2017.051003.
 ```
