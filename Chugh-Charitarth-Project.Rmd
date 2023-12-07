@@ -97,32 +97,36 @@ pairs.panels(df_train,
 )
 ```
 
-The Pearson correlation coefficient (denoted as $r$) is used to measure the strength of a linear association between two variables. This value can range from -1 to 1, where magnitude indicates the strength and the signage indicates directionality. For example, in figure {}, we can find the $r$ value based on where the row of one variable and the column of the other variable intersect. Based on our training dataset, the variables `Var1` and `Var2` have a Pearson's constant of {}, indicating a {weak/moderate/strong positive/negative} linear correlation. Utilizing Pearson's constant is a good way of assessing whether there is the issue of multicollinearity, where regressors are highly correlated or are dependent with each other, indicated by large values of $r$. Multicollinearity can inflate the variance and result in potentially misleading conclusions regarding contributions of the regressors. The original paper uses the value of 0.5 as the threshold for indicating collinearity; the authors observe that since no value of $r$ between any two variables are larger than 0.5, it is assumed that all the variables are independent.
+To begin our preliminary analysis, we will begin by creating a predictor plot with Pearson correlation coefficients combined with a scatterplot matrix. This diagram will give us a visual understanding of pairwise relationships between all variables in the study based on our training data. The Pearson correlation coefficient (denoted as $r$) is used to measure the strength of a linear association between two variables. This value can range from -1 to 1, where magnitude indicates the strength and the signage indicates directionality. For example, in the scatterplot matrix above we can find the $r$ value based on where the row of one variable and the column of the other variable intersect. Based on our training dataset, the variables `TaxiIn` and `NASDelay` have a Pearson’s constant of 0.24, indicating a weak positive linear correlation. Utilizing Pearson’s constant is a good way of assessing whether there is the issue of multicollinearity, where regressors are highly correlated or are dependent with each other, indicated by large values of $r$. Multicollinearity can inflate the variance and result in potentially misleading conclusions regarding contributions of the regressors. The original paper uses the value of 0.5 as the threshold for indicating collinearity; the authors observe that since no value of $r$ between any two variables are larger than 0.5, it is assumed that all the variables are independent. The $r$ values of our training data set tend to generally agree with those found in the original paper; the correlation coefficients between pairs of regressors (all variables excluding `DepDelay`, the response variable) are generally weak, so multicollinearity is not likely to be an issue in our analysis.
 
-Scatterplots are utilized to plot two variables against each other to analyze any patterns and see if there is anything that may suggest a relationship between the two. In figure {}, we can analyze the scatterplot of the variables `Var1` and `Var2` with a Pearson's constant of {}. We can observe visually in the associated scatterplot that the observations tend to be {clustered randomly/follow a vague/distinct linear pattern}, which agrees with the Pearson's constant. Randomness in the scatterplot indicates no relationship, while linear patterns may imply a linear relationship. The strength of the linear relationship is indicated by the clarity of the linear pattern; for example, a perfect straight line of observations with no deviations would indicate a perfect linear correlation between two variables. In the original paper, scatterplots comparing regressors appear to not have a distinguishable pattern that would imply a linear relationship, although it is worth noting that most observations tend to adhere close to the axes.
-
-Our training data {generally disagrees/agrees....} with their findings... Based on our training set, we {also?} observe that {???}
+Scatterplots are utilized to plot two variables against each other to analyze any patterns and see if there is anything that may suggest a relationship between the two. In the scatterplot matrix above, we can analyze the scatterplot of the variables `TaxiIn` and `NASDelay` with a Pearson’s constant of 0.24. We can visually observe in the associated scatterplot that the observations tend to be clustered randomly (although observations taper off towards larger values of y) and thus will have a weak linear relationship, which agrees with the Pearson’s constant. Randomness in the scatterplot indicates no relationship, while linear patterns may imply a linear relationship. The strength of the linear relationship is indicated by the clarity of the linear pattern; for example, a perfect straight line of observations with no deviations would indicate a perfect linear correlation between two variables. In the original paper, scatterplots comparing regressors (variables not including the response) do not appear to have a distinguishable pattern that would imply a linear relationship, although it is worth noting that most observations tend to adhere close to the axes. When we look at scatterplots with respect to the response variable, we can see  linear patterns that emerge from those associated with variables `CarrierDelay`, `WeatherDelay`, `NASDelay`, and `LateAircraftDelay`. Visually, our training data generally agrees with the findings from the original paper with the aforementioned features.
 
 ### 3.2 Multiple Regression Model
 
 -   define MLR, equation
 
-An MLR (Multiple Linear Regression) model predicts a quantitative response $Y$ (in this case, the length of Departure Delay measured by `DepDelay`) based on two or more predictor variables, either categorical or quantitative. We can only use this model on the assumption that there exists some linear relationship between the regressors and $Y$. We can express this relationship as a mathematical equation:
+An MLR (Multiple Linear Regression) model predicts a quantitative response $Y$ (in this case, the length of Departure Delay measured by `DepDelay`) based on two or more predictor variables, either categorical or quantitative. We can only construct and draw inferences from this model with the following assumptions:
+
+- There exists some linear relationship between each regressors and $Y$.
+- The variance of the errors (difference between predicted and actual response values) should be consistent across all levels of the predictors. (This is the assumption of homoscedasticity.)
+- The expected value of the errors should be zero.
+- Observations should be independent of each other.
+- The errors should follow a normal distribution.
+
+We can express this relationship as a mathematical equation:
 
 $$ y = \beta_{0} + \sum\limits_{i=1}^{m}\beta_{i}x_{i} + \epsilon $$
 
-In the original report and in this paper, there are no categorical variables to analyze so no numeric encoding is necessary. When regression is run with all eight quantitative regressors, we observed that all of the variables were significant with an r-square of {}; which is similar to the result{?} from the original paper (with an r-squared value of 0.84). Note that since we do not the exact training dataset used, reproducibility is limited, so we accept approximate results when attempting to replicate the procedure. This indicates that the initial main MLR model can explain {}% of the variation in the data.
+In the original report and in this paper, there are no categorical variables to analyze so no numeric encoding is necessary. When regression is run with all eight quantitative regressors, we observed that all of the regressors were significant with an R-squared value of 0.9812, which is somewhat similar to the result from the original paper (with an R-squared value of 0.84). This indicates that the initial main MLR model can explain 98.12% of the variation in the data.  Note that since we do not the exact training dataset used, reproducibility is limited, so we accept approximate results when attempting to replicate the procedure.
 
--   run MLR with all 8 regressors
 
 ```{r cache=TRUE}
+# run MLR with all 8 regressors
 m1 <- lm(DepDelay ~ ., data = df_train)
 summary(m1)
 ```
 
--   stepwise regression, forward/backward
-
-We can apply a stepwise regression (in both directions) to determine if results will agree with the initial main MLR model. Note that the initial direction of the stepwise regression performed in the initial paper was ambiguous, so both are conducted in the below code.
+We can apply a stepwise regression (in both directions) to determine if results will agree with the initial main MLR model.Stepwise regression is an iterative process of adding or removing regressors to find the best fit model based on a specified metric (in this case, we want to find the minimum AIC value). Note that the initial direction of the stepwise regression performed in the initial paper was ambiguous, so both are conducted in the below code. 
 
 ```{r stepwiseRegression, cache=TRUE}
 step(m1, direction = "both")
@@ -131,14 +135,29 @@ step(lm(DepDelay ~ 1, data = df_train),
 )
 ```
 
--   RMSE
--   resulting equation
--   interpretation of coefficients
+From both the forward and backward stepwise regression, we end up with the full model with all eight regressors as expected from the original report. We can write out the multiple linear equation generated from this process, with coefficients rounded to four significant digits like the original report:
+
+
+Dep Delay = 19.40 + (1.007) CarrierDelay + (1.012) Late Aircraft Delay	+ (0.9236) NAS Delay + (0.9918) Weather Delay - (0.7595) Taxi Out  - (0.7827) TaxiIn + (0.9821) SecurityDelay + (3.631)(10^{-3}) Distance 
+
+
+The coefficients of this MLR model are approximately within 0.2 units of those generated in the original paper. Based on this, we can infer some information about the relationship between the regressors and the response variable. The intercept or $\beta_0$ value is predicted to be 19.40 minutes, which means that if all of the regressors are set equal to zero, we predict that on average, we will have a substantial flight delay of 19.40 minutes. The Federal Aviation Administration (FAA) has a standard of 15 minutes as a threshold for a flight to be considered “delayed”. There may be other factors which contribute to departure delay which we are not considering.
+
+The idea of a Root mean squared error (RMSE) is also discussed in the original paper. This is calculated by subtracting the observed predictor values from the predicted values, finding the mean of all these values squared (the mean of the squared errors), then taking the square root. For a perfect linear model, we expect an RMSE of 0. We can calculate the RMSE of our model as below:
+
+```{r RMSE, cache=TRUE}
+RMSE <- sqrt(mean(m1$residuals^2))
+RMSE
+```
+
+Our RMSE of 10.8 is relatively smaller compared to that of the original report (RMSE = 21.2). This metric serves just to give an idea of how much the errors vary overall in our model based on our training data.
 
 #### 3.2.1 Residual Analysis
 
--   usage, definition, expectation
--   residual vs fitted values
+Residual plots can be used to check our regression assumptions, specifically if the assumption of linearity is appropriate, if the errors have constant variance, and if we missed important variables that should be included in the model. In an ideal scenario where these assumptions are satisfied, we are expecting to see no distinguishable pattern that emerges from the scatterplots between the residuals and each variable. However, we see a distinct megaphone shape emerge from most of the variables, where there is distinctly more variation with lower values; we will formally test for non-constant variance (heteroscedasticity) in our enhancement. Some of these megaphone shapes seem to curl upward, such as the residual plot for `NASDelay`; this may indicate some form of non-linearity. Similar to the plots associated with the regressors, a pointed megaphone shape along the x-axis with residuals in the negative emerged from the residual plot for the fitted values. The original paper only provided the residual plot for the fitted values (using direct residuals as opposed to standardized or studentized) but a similar pattern seems to emerge.
+
+In our report, we also included tests for curvature and non-additivity based on the null hypothesis that the regressors have a linear relationship with the response variable. Based on a significance level of 0.05, all regressors except `SecurityDelay` and `LateAircraftDelay` reject the null hypothesis, indicating that there could be some non-linear component in their respective relationships with `DepDelay`; this needs to be corrected to be used in an MLR model and will be explored further in our enhancements. In the next section, we discuss a remedy to address both the problem of non-linearity and heteroscedasticity.
+
 
 ```{r residualPlotsUntransformed, cache=TRUE}
 residualPlots(m1, type = "rstudent")
@@ -146,8 +165,8 @@ residualPlots(m1, type = "rstudent")
 
 #### 3.2.2 Test for Normality
 
--   usage, definition, expectation
--   Normal Q-Q plot
+We can test for normality using a normal QQ plot. In the normal QQ plot, the residuals are plotted against the theoretical quantiles of a standard normal distribution. If our assumption of normality is correct, we should see points plotted in a perfect straight line. However based on our training data, we see a heavily tailed distribution, indicating non-normality. This result agrees with the Normal Q-Q plot in the original paper; MLR was still used as a model despite violating the assumption of normality. This issue was overlooked because the original paper also implemented models that do not require normally distributed errors, which are briefly touched upon later in this section. Because such models fall outside of our scope, we will discuss a remedy in the next section to make our data suitable just for a multiple linear regression model.
+
 
 ```{r qq-plot, cache=TRUE}
 ti <- rstudent(m1)
@@ -158,8 +177,10 @@ qqline(ti)
 
 #### 3.2.3 Variance Inflation Factor (VIF)
 
--   usage, definition, expectation
--   VIF test
+Multicollinearity can be detected by measuring the Variance Inflation Factor (VIF) for each regressor. All regressors should be independent of each other for a more robust and accurate model; multicollinearity can inflate the value of $R^2$, overestimating how much variation can be explained by the model. Given a regressor $X_j$ and its coefficient $\beta_j$, the VIF can be calculated as such:
+
+$$VIF_j = \frac{1}{1-R^2_j}$$
+where $R^2_j$ is the coefficient of determination for regressing $X_j$ on the remaining regressors. If regressors are correlated with each other, $R^2_j$ will increase, which also increases VIF. In an ideal model, we should expect to see values of VIF that are very close to 1. If values exceed 5, we should be cautious this would be a strong indication of collinearity and needs to be further investigated. In the `vif()` code below, we see that all the values seem to be relatively close to 1. This suggests that there is little to no multicollinearity between any regressors.
 
 ```{r cache=TRUE}
 car::vif(m1)
@@ -167,6 +188,7 @@ car::vif(m1)
 
 #### 3.2.4 Outliers
 
+{need to finish}
 -   why consider outliers
 -   leverage values
 -   Outliers with Bonferroni
@@ -178,17 +200,23 @@ car::influenceIndexPlot(m1) # first and third subplot
 
 ### 3.3 Other Models
 
-#### Decision Tree
+#### Decision Tree and Random Forest
 
-A decision tree is a supervised machine learning algorithm used for both classification and regression tasks. It models decisions based on a series of questions or conditions and represents them in a tree-like structure. Each internal node of the tree represents a decision based on a specific feature, and each branch represents the possible outcomes of the decision. The leaves of the tree represent the final decision or the predicted output.
+The original paper discusses the use of decision tree and random forest algorithms to determine the most influential regressors without the assumption of normality. A decision tree is a machine learning algorithm used for both classification and regression. It models decisions based on a series of conditions and represents them in a tree-like structure. The decision-making process involves partitioning the data repeatedly based on the features until a stopping condition is met. A random forest builds multiple decision trees and considers their predictions collectively to improve overall performance. It constructs a large number of decision trees during training and outputs the most frequent category (response variable is qualitative) or mean prediction (regression, or response variable is quantitative) of the individual trees. For the purposes of this analysis and enhancement report, we will not discuss these methods as they fall outside of our scope.
 
-The decision-making process involves recursively partitioning the data based on the features until a stopping condition is met, such as a maximum depth or a minimum number of data points in a leaf node. Decision trees are intuitive, easy to interpret, and can handle both numerical and categorical data.
-
-A random forest is an ensemble learning method that builds multiple decision trees and merges their predictions to improve overall performance and robustness. It operates by constructing a multitude of decision trees during training and outputting the class that is the mode of the classes (classification) or mean prediction (regression) of the individual trees.
 
 ## Section 4. Enhancement of Original Analysis
 
+- Addressing Outliers
+
+We noticed that outliers and influential points… {need to finish}.
+These extreme outliers may affect how we perform our enhancement.
+
+
 -   Assess Non Constant Variance
+
+First we will run a test to formally determine if we can use the assumption of homoscedasticity. The original paper only utilized a visual approach to check this assumption using a residual plot, we will supplement this with a `ncvTest()` from the `car` package prior to applying any enhancements.
+Our null hypothesis of homoscedasticity is rejected, therefore we cannot assume constant variance of the errors. We will need to remedy this, in conjunction with the issue of non-normality and non-linearity.
 
 ```{r cache=TRUE}
 car::ncvTest(m1)
@@ -196,7 +224,9 @@ car::ncvTest(m1)
 ```{r}
 which(outlierTest(m1, n.max=999999)$rstudent)
 ```
-Based on the test for non-constant variance, we are able to reject the null hypothesis - We cannot assume constant variance in this model. - Transform regressors
+
+To address multiple violations in our assumptions, we can consider using Box-Cox power transformations on our regressors and response variable. The `powerTransform()` function in the `car` package will determine the best estimates for transformation parameters for each variable. Based on the estimated parameters, we then apply a transformation to each regressor respectively. The goal is to find a transformation of each variable that will result in approximately normal distributions for the residuals, a constant variance of the error, and linear relationships between functions of variables. These transformations are done before we construct the MLR model:
+
 
 ```{r cache=TRUE}
 pT <- powerTransform(DepDelay ~ CarrierDelay + TaxiIn + TaxiOut +
@@ -217,10 +247,16 @@ pT <- powerTransform(
 
 ```
 
+Because Box-Cox transformations require the variables to be strictly positive and there exist observations where the value of the regressor is 0, we have added a very small constant of 0.001 to each observed regressor value to avoid computational issues (avoids taking the logarithm of 0). 
+
+
 ```{r}
 summary(pT)
 testTransform(pT, lambda = c(0, -1, 0, 0, -3, 0, -3, 0))
 ```
+
+When we initially run the `powerTransform()` function, our output provided unexpected estimated parameters, particularly for the `SecurityDelay` regressor. We revisited the summary statistics for this regressor and noted it was extremely skewed due to outliers. We made the decision to perform the Box-Cox transformation without considering observations where outliers have a Bonferroni p-value smaller than a cutoff of 0.05. However, we will keep the outliers in our training data; the purpose of temporarily setting them aside is to find adequate estimates for power transformation parameters.
+
 ```{r}
 
 ```
@@ -237,7 +273,9 @@ testTransform(pT, lambda = c(0, -1, 0, 0, -3, 0, -3, 0))
 summary(df_train)
 ```
 
--   Use penalized regression to find an MLR model that performs just as well or better with less regressors: Forward/Backward stepwise (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
+In addition to transforming our variables so that they are better suited for a multiple linear regression model, our goal is to find an MLR model with fewer regressors with an equivalent if not greater predictive ability. We are selecting a model based on the principle of parsimony, or the idea that a “simpler” model with fewer regressors is preferred. We will utilize multiple methods of variable discovery and model selection, including subset selection, LASSO, Adaptive LASSO, Elastic Net, and SCAD.
+
+-   Use penalized regression to find an MLR model that performs just as well or better with less regressors: `regsubset()` (determined by R squared and AIC/BIC), LASSO, Adaptive LASSO, Elastic Net, SCAD
 
 -   Evaluate the model's predictive ability for each regularized model: MSE, MAE, VEcv tmp \<- df_train[, -1]
 
