@@ -133,7 +133,7 @@ step(lm(DepDelay ~ 1, data = df_train),
 )
 ```
 
-From both the forward and backward stepwise regression, we end up with the full model with all eight regressors as expected from the original report. We can write out the multiple linear equation generated from this process, with coefficients rounded to four significant digits like the original report:
+From both the forward and backward stepwise regression, we end up with the full model with all eight regressors as expected from the original report. We can write out the multiple linear equation generated from this process, with coefficients rounded to four significant digits like the original report: {DOUBLE CHECK COEFFICIENTS BEFORE SUBMITTING}
 
 
 Dep Delay = 19.40 + (1.007) CarrierDelay + (1.012) Late Aircraft Delay	+ (0.9236) NAS Delay + (0.9918) Weather Delay - (0.7595) Taxi Out  - (0.7827) TaxiIn + (0.9821) SecurityDelay + (3.631)(10^{-3}) Distance 
@@ -232,19 +232,20 @@ car::ncvTest(m1)
 
 ### 4.2 Variable Transformation and Assumption Reassessment
 
-To address multiple violations in our assumptions, we can consider using Box-Cox power transformations on our regressors and response variable. The `powerTransform()` function in the `car` package will determine the best estimates for transformation parameters for each variable. Based on the estimated parameters, we then apply a transformation to each regressor respectively. The goal is to find a transformation of each variable that will result in approximately normal distributions for the residuals, a constant variance of the error, and linear relationships between functions of variables. These transformations are done before we construct the MLR model:
+To address multiple violations in our assumptions, we can consider using Box-Cox power transformations on our regressors and response variable. The `powerTransform()` function in the `car` package will determine the best estimates for transformation parameters for each variable. Based on the estimated parameters, we then apply a transformation to each regressor respectively. The goal is to find a transformation of each variable that will result in approximately normal distributions for the residuals, a constant variance of the error, and linear relationships between functions of variables. These transformations are done before we construct the MLR model.
 
+Because Box-Cox transformations require the variables to be strictly positive and there exist observations where the value of the regressor is 0, we have added a very small constant of 0.001 to each observed regressor value to avoid computational issues (avoids taking the logarithm of 0). 
 
-```{r cache=TRUE}
-pT <- powerTransform(DepDelay ~ CarrierDelay + TaxiIn + TaxiOut +
-  Distance + WeatherDelay + NASDelay +
-  SecurityDelay + LateAircraftDelay, df_train)
-summary(pT)
-testTransform(pT)
-```
+When we initially run the `powerTransform()` function, our output provided unexpected estimated parameters, particularly for the `SecurityDelay` regressor. We revisited the summary statistics for this regressor and noted it was extremely skewed due to outliers. We made the decision to perform the Box-Cox transformation without considering observations where outliers have a Bonferroni p-value smaller than a cutoff of 0.05. However, we will keep the outliers in our training data; the purpose of temporarily setting them aside is to find adequate estimates for power transformation parameters.
 
-```{r}
+```{r adjusting-Training-Set}
 df_train_shifted = data.frame(lapply(df_train,function(x) x+0.001))
+m11 <- lm(formula = DepDelay ~ ., data = df_train_shifted)
+outliers1 <- df_train_shifted[(as.integer(names(abs(outlierTest(m11, n.max=499)$rstudent)))),]
+df_train_shifted_no_outliers <- dplyr::anti_join(df_train_shifted, outliers1)
+
+length(df_train_shifted[,1]) == length(df_train_shifted_no_outliers[,1]) + 442
+# verifying outliers were removed
 ```
 
 ```{r cache=True ti}
@@ -253,20 +254,29 @@ pT <- powerTransform(
     CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDelay,
     NASDelay, SecurityDelay, LateAircraftDelay
   ) ~ 1,
-  data = filter(df_train_shifted, SecurityDelay<10), family = "bcPower"
+  data = df_train_shifted_no_outliers, family = "bcPower"
 )
-
+summary(pT)
 ```
 
-Because Box-Cox transformations require the variables to be strictly positive and there exist observations where the value of the regressor is 0, we have added a very small constant of 0.001 to each observed regressor value to avoid computational issues (avoids taking the logarithm of 0). 
 
 
 ```{r}
 summary(pT)
-testTransform(pT, lambda = c(0, -1, 0, 0, -3, 0, -3, 0))/ # use appropriate parameter estimates
+testTransform(pT, lambda = c(0, 0, 0, 0, -2, 0, -3, 0)) # use appropriate parameter estimates
+testTransform(pT, lambda = c(0.1, -0.4, -0.3, 0.2, -1.6, -0.1, -29, 0.1))
 ```
 
-When we initially run the `powerTransform()` function, our output provided unexpected estimated parameters, particularly for the `SecurityDelay` regressor. We revisited the summary statistics for this regressor and noted it was extremely skewed due to outliers. We made the decision to perform the Box-Cox transformation without considering observations where outliers have a Bonferroni p-value smaller than a cutoff of 0.05. However, we will keep the outliers in our training data; the purpose of temporarily setting them aside is to find adequate estimates for power transformation parameters.
+
+
+
+
+```{r responseTransform cache=TRUE}
+pT <- powerTransform(DepDelay ~ CarrierDelay + TaxiIn + TaxiOut +
+  Distance + WeatherDelay + NASDelay +
+  SecurityDelay + LateAircraftDelay, df_train)
+summary(pT)
+```
 
 Once we have determined the appropriate transformations, we can reassess the assumptions of normality, constant variance, and linearity for a new model with the transformed variables:
 
