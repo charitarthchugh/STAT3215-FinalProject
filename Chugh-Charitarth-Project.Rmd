@@ -17,8 +17,6 @@ library(alr4)
 library(glmnet)
 library(ncvreg)
 library(leaps)
-library(doParallel)
-library(foreach)
 
 set.seed(3215)
 ```
@@ -422,9 +420,6 @@ results
 
 ```
 
-```{r}
-results
-```
 
 ### 4.3.5 SCAD
 
