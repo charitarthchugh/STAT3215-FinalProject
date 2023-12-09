@@ -262,9 +262,9 @@ summary(pT)
 
 
 ```{r}
-summary(pT)
-testTransform(pT, lambda = c(0, 0, 0, 0, -2, 0, -3, 0)) # use appropriate parameter estimates
-testTransform(pT, lambda = c(0.1, -0.4, -0.3, 0.2, -1.6, -0.1, -29, 0.1))
+testTransform(pT, lambda = c(0, 0, 0, 0, -2, 0, 1, 0))
+# use integer parameter estimates
+# was advised to ignore power of -29 and leave untransformed
 ```
 
 
@@ -272,17 +272,20 @@ testTransform(pT, lambda = c(0.1, -0.4, -0.3, 0.2, -1.6, -0.1, -29, 0.1))
 
 
 ```{r responseTransform cache=TRUE}
-pT <- powerTransform(DepDelay ~ CarrierDelay + TaxiIn + TaxiOut +
-  Distance + WeatherDelay + NASDelay +
-  SecurityDelay + LateAircraftDelay, df_train)
+pT <- powerTransform(DepDelay ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
+  log(Distance) + I(WeatherDelay^(-2)) + log(NASDelay) +
+  SecurityDelay + log(LateAircraftDelay), df_train_shifted_no_outliers)
 summary(pT)
+# lower LRT is better, log transform DepDelay
 ```
 
 Once we have determined the appropriate transformations, we can reassess the assumptions of normality, constant variance, and linearity for a new model with the transformed variables:
 
 
 ```{r}
-m5 <- lm( TRANSFORMED MODEL, data = df_train)
+m5 <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
+  log(Distance) + I(WeatherDelay^(-2)) + log(NASDelay) +
+  SecurityDelay + log(LateAircraftDelay), data = df_train)
 ```
 
 -   Check residual plots
