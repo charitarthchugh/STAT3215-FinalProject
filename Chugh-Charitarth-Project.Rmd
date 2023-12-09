@@ -410,7 +410,7 @@ for (i in 0:20) {
  mse = sse/n.test
  mae <- mean(abs(y.test - predicted))
  vecv = (1-sse/syy.test)*100
- results = rbind(results, data.frame(name=name,alpha=i/20,mse=mse,mae=mae,vecv=vecv))
+ results = rbind(results, data.frame(alpha=i/20,mse=mse,mae=mae,vecv=vecv))
 } 
 results
 ## Calculate the Mean Squared Prediction Error... 
