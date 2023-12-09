@@ -259,17 +259,11 @@ pT <- powerTransform(
 summary(pT)
 ```
 
-
-
 ```{r}
 testTransform(pT, lambda = c(0, 0, 0, 0, -2, 0, 1, 0))
 # use integer parameter estimates
 # was advised to ignore power of -29 and leave untransformed
 ```
-
-
-
-
 
 ```{r responseTransform cache=TRUE}
 pT <- powerTransform(DepDelay ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
@@ -282,33 +276,50 @@ summary(pT)
 Once we have determined the appropriate transformations, we can reassess the assumptions of normality, constant variance, and linearity for a new model with the transformed variables:
 
 
-```{r}
-m5 <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
+```{r transformed-MLR-model}
+m8 <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
   log(Distance) + I(WeatherDelay^(-2)) + log(NASDelay) +
-  SecurityDelay + log(LateAircraftDelay), data = df_train)
+  SecurityDelay + log(LateAircraftDelay), data = df_train_shifted)
 ```
 
--   Check residual plots
-
-```{r}
+```{r qq-plot-transformed}
 # Normal QQ Plot: normality
-ti <- rstudent(m5)
+ti <- rstudent(m8)
 par(mfrow=c(1,2))
 qqnorm(ti); qqline(ti)
 m<-mean(ti); std<-sd(ti)
 hist(ti, density=20, breaks=20, prob=TRUE, xlab="Studentized residuals", # including histogram overlay
 main="Histogram with Normal overlay")
 curve(dnorm(x, mean=m, sd=std), col="darkblue", lwd=2, add=TRUE, yaxt="n")
+```
 
+```{r ncv-transformed}
 # formal non-constant variance test
-ncvTest(m5)
-# scatterplot matrix: normality, linearity
-pairs.panels(df_transformed_vars[a:b], ellipses=FALSE, hist.col = "cyan",
-method = "pearson", density = TRUE)
-# residual plots: constant variance, linearity
-residualPlots(m5, type="rstudent")
+ncvTest(m8) 
+```
+```{r dataframe-setup}
+df_transformed_vars_train <- transform(df_train_shifted,
+  logDepDelay=log(DepDelay), logCarrierDelay=log(CarrierDelay),
+  logTaxiIn=log(TaxiIn), logTaxiOut=log(TaxiOut),
+  logDistance=log(Distance), inv2WeatherDelay=I(WeatherDelay^(-2)), 
+  logNASDelay=log(NASDelay), SecurityDelay1=SecurityDelay,
+  logLateAircraftDelay=log(LateAircraftDelay))
 
 ```
+
+
+```{r pairs-panels-transformed eval=FALSE}
+# transformed scatterplot matrix: normality, linearity
+pairs.panels(df_transformed_vars_train[,10:17], ellipses=FALSE, hist.col = "cyan", 
+             method = "pearson", density = TRUE)
+```
+
+```{r residual-plots-transformed eval=FALSE}
+# residual plots: constant variance, linearity
+residualPlots(m8, type="rstudent")
+
+```
+
 
 ### 4.3 Variable Selection for Discovery
 
@@ -316,17 +327,48 @@ In addition to transforming our variables so that they are better suited for a m
 
 Subset selection is the process of iteratively going through models of different sizes, then selecting the best one based on AIC/BIC. The regularized methods we will use in the below code are LASSO, Adaptive LASSO, Elastic Net, and SCAD, each with slightly different methods of minimizing RSS (residual sum of squares) based on the number of regressors. This allows us to have an assortment of models to choose from.
 
-```{r crossValidation}
-```
+When comparing models fit on the same dataset with the same response variable and sample size, a model with larger $R^2_a$ is preferred, but smaller AIC. $R^2_a$ is an adjusted $R^2$ value which accounts for the size of the model. $$R^2_a=1-(\frac{n-1}{n-(p_c+1)})\frac{RSS_{p_C}}{SYY}$$ where $p_C$ is the number of regressors in the model, $RSS_{p_C}$ is the residual sum of squares, and $SYY$ is total variation.
+
 
 #### 4.3.1 Subset Selection
 
-When comparing models fit on the same dataset with the same response variable and sample size, a model with larger $R^2_a$ is preferred, but smaller AIC. $R^2_a$ is an adjusted $R^2$ value which accounts for the size of the model. $$R^2_a=1-(\frac{n-1}{n-(p_c+1)})\frac{RSS_{p_C}}{SYY}$$ where $p_C$ is the number of regressors in the model, $RSS_{p_C}$ is the residual sum of squares, and $SYY$ is total variation.
+```{r dataframe-setup2}
+df_test_shifted = data.frame(lapply(df_test,function(x) x+0.001))
 
-```{r regsubset}
+df_transformed_vars_train_test <- transform(df_test_shifted,
+  logDepDelay=log(DepDelay), logCarrierDelay=log(CarrierDelay),
+  logTaxiIn=log(TaxiIn), logTaxiOut=log(TaxiOut),
+  logDistance=log(Distance), inv2WeatherDelay=I(WeatherDelay^(-2)), 
+  logNASDelay=log(NASDelay), SecurityDelay1=SecurityDelay,
+  logLateAircraftDelay=log(LateAircraftDelay))
+
 ```
 
-The metrics output from `regsubset()` will be examined in section 4.4 discussing model selection.
+
+```{r regsubset}
+f <- log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
+  log(Distance) + I(WeatherDelay^(-2)) + log(NASDelay) +
+  SecurityDelay + log(LateAircraftDelay)
+out<-regsubsets(f, nvmax=8, data=df_train_shifted)
+cbind(summary(out)$which, adjr2=summary(out)$adjr2, BIC=summary(out)$bic)
+
+x.test<- as.matrix(df_transformed_vars_train_test[,10:18]) 
+y.test<- df_transformed_vars_train_test$logDepDelay
+x.train <- as.matrix(df_transformed_vars_train[,10:18])
+y.train <- df_transformed_vars_train$logDepDelay
+n.test <- dim(df_transformed_vars_train_test)[1]
+syy.test <- (n.test-1)*var(y.test)
+```
+
+```{r prelim-model-regsubset}
+m7 <- lm( logDepDelay ~ logCarrierDelay + logTaxiIn +
+  logDistance + inv2WeatherDelay + logNASDelay +
+  SecurityDelay1 + logLateAircraftDelay, data=df_transformed_vars_train)
+m8 <- lm( logDepDelay ~ logCarrierDelay + logTaxiIn + logTaxiOut +
+  logDistance + inv2WeatherDelay + logNASDelay +
+  SecurityDelay1 + logLateAircraftDelay, data=df_transformed_vars_train) 
+# full model is a candidate
+```
 
 #### 4.3.2 LASSO
 
@@ -348,9 +390,43 @@ Our goal is to find a model that minimizes both MSE and MAE, so that the model i
 VEcv is the amount of variance explained based on cross-validation, computed as: $$1-\frac{\sum_{i=1}^{n_H}(y_{H_i}-\hat{y}^*_{H_i})^2}{\sum_{i=1}^{n_H}(y_{H_i}-\bar{y}_{H_i})^2}$$
 Where $\bar{y}_{H}$ is sample mean of test responses $y_{H_i}$ of all test observations. 
 
+#### 4.4.1 Subset Selection Evaluation
+
 ```{r modelEvaluations}
+ 
+m7.predicted <- predict(m7, newdata=as.data.frame(x.test))
+sse <- sum((y.test - m7.predicted)^2)
+m7.out <- c(mse=sse/n.test, mae= mean(abs(y.test - m7.predicted)), VEcv= (1-sse/syy.test)*100) 
+m7.out
+m8.predicted <- predict(m8, newdata=as.data.frame(x.test))
+sse <- sum((y.test - m8.predicted)^2)
+m8.out <- c(mse=sse/n.test, mae= mean(abs(y.test - m8.predicted)), VEcv= (1-sse/syy.test)*100) 
+m8.out
 
 ```
+#### 4.4.2 LASSO Evaluation
+
+#### 4.4.3 Adaptive LASSO Evaluation
+
+#### 4.4.4 Elastic Net Evaluation
+
+### 4.4.5 SCAD Evaluation
+
+### 4.4.6 Control Evaluation
+```{r control-eval}
+m1 <- lm(exp(logDepDelay) ~ exp(logCarrierDelay) + exp(logTaxiIn) + exp(logTaxiOut) + 
+    exp(logDistance) + I(inv2WeatherDelay^(-1/2)) + exp(logNASDelay) + SecurityDelay1 + 
+    exp(logLateAircraftDelay), data = df_transformed_vars)
+m1.predicted <- predict(m1, newdata=as.data.frame(x.test))
+sse <- sum((y.test - m1.predicted)^2)
+m1.out <- c(mse=sse/n.test, mae= mean(abs(y.test - m7.predicted)), VEcv= (1-sse/syy.test)*100) 
+m1.out
+
+```
+
+
+### 4.5 Model Summary
+
 
 
 ## Section 5. Discussion and Conclusion
@@ -361,9 +437,7 @@ In addition to pre-processing, to determine appropriate Box-Cox transformations,
 
 Despite the differences in our processes, we were able to verify which MLR assumptions were violated, and find an approximation to the original MLR model based on the procedure provided. Both the original paper and our replication violated assumptions of normality, linearity, and homoscedasticity. The original report relied on visual plots to determine features that validate (or invalidate) assumptions, while our enhancement added formal tests. Independence of observations is also questionable because flights may interfere with each other when airports have finite capacities. There were a substantial number of outliers, but no influential points. Both analyses also determine that collinearity is not likely to be an issue.
 
-Our enhancement attempts to address these violations by {...}
-
-We conclude that we can create a better multiple linear regression model based on additional metrics considered in this enhancement that were not included in the original paper. Our goal was to identify a model {...}
+Our enhancement attempts to address these violations by applying the aforementioned power transformations, which was able to contribute to normality (according to Q-Q plot) and some linearity (random patterns in residual plots). We conclude that we can create a better multiple linear regression model based on additional metrics considered in this enhancement that were not included in the original paper. Our goal was to identify a model with better or similar predictive capability with less regressors. Since MLR assumptions are not fully satisfied, what we had determined to be the best model as well as its other candidates should be used with caution.
 
 ## References:
 
