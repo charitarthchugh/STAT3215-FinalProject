@@ -17,6 +17,8 @@ library(alr4)
 library(glmnet)
 library(ncvreg)
 library(leaps)
+library(doParallel)
+library(foreach)
 
 set.seed(3215)
 ```
@@ -399,16 +401,16 @@ plot(alasso)
 
 ```{r}
 models <- list() 
-results = data.frame()
+results = data.frame(name=character(),alpha=numeric(),mse=numeric(),mae=numeric(),vecv=numeric())
+colnames(results) <- c("name","alpha","mse","mae","vecv")
 for (i in 0:20) {
- name <- paste0("alpha", i/20)
  models[[name]] <- cv.glmnet(x.train, y.train, type.measure="mse", alpha=i/20,   family="gaussian")
  predicted <- predict(models[[name]], s=models[[name]]$lambda.1se, newx=x.test)
  sse <- sum((y.test - predicted)**2) 
  mse = sse/n.test
  mae <- mean(abs(y.test - predicted))
  vecv = (1-sse/syy.test)*100
- results[nrow(results)+1] = c(name=name,alpha=alpha,mse=mse ,mae=mae,vecv=vecv)
+ results = rbind(results, data.frame(name=name,alpha=i/20,mse=mse,mae=mae,vecv=vecv))
 } 
 results
 ## Calculate the Mean Squared Prediction Error... 
@@ -503,6 +505,7 @@ Original Paper:
  year={2017}, month={Oct}, pages={485–491} }
 ```
 
-MLA citation: - Kalliguddi, Anish M., and Aera K. Leboulluec. "Predictive Modeling of Aircraft Flight Delay." Universal Journal of Management, vol. 5, no. 10, Oct. 2017, pp. 485--91, <https://doi.org/10.13189/ujm.2017.051003>.
+MLA citation: 
+- Kalliguddi, Anish M., and Aera K. Leboulluec. "Predictive Modeling of Aircraft Flight Delay." Universal Journal of Management, vol. 5, no. 10, Oct. 2017, pp. 485--91, <https://doi.org/10.13189/ujm.2017.051003>.
 
 (We also referenced notes from Dr. Schifano on Blackboard frequently.)
