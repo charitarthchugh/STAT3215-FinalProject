@@ -335,7 +335,7 @@ When comparing models fit on the same dataset with the same response variable an
 ```{r dataframe-setup2}
 df_test_shifted = data.frame(lapply(df_test,function(x) x+0.001))
 
-df_transformed_vars_train_test <- transform(df_test_shifted,
+df_transformed_vars_test <- transform(df_test_shifted,
   logDepDelay=log(DepDelay), logCarrierDelay=log(CarrierDelay),
   logTaxiIn=log(TaxiIn), logTaxiOut=log(TaxiOut),
   logDistance=log(Distance), inv2WeatherDelay=I(WeatherDelay^(-2)), 
@@ -352,11 +352,11 @@ f <- log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
 out<-regsubsets(f, nvmax=8, data=df_train_shifted)
 cbind(summary(out)$which, adjr2=summary(out)$adjr2, BIC=summary(out)$bic)
 
-x.test<- as.matrix(df_transformed_vars_train_test[,10:18]) 
-y.test<- df_transformed_vars_train_test$logDepDelay
+x.test<- as.matrix(df_transformed_vars_test[,10:18]) 
+y.test<- df_transformed_vars_test$logDepDelay
 x.train <- as.matrix(df_transformed_vars_train[,10:18])
 y.train <- df_transformed_vars_train$logDepDelay
-n.test <- dim(df_transformed_vars_train_test)[1]
+n.test <- dim(df_transformed_vars_test)[1]
 syy.test <- (n.test-1)*var(y.test)
 ```
 
@@ -371,6 +371,19 @@ m8 <- lm( logDepDelay ~ logCarrierDelay + logTaxiIn + logTaxiOut +
 ```
 
 #### 4.3.2 LASSO
+
+```{r}
+mod.mat <- model.matrix(f, data=df_transformed_vars_train)
+out.lasso <- cv.glmnet(x=mod.mat[,-1], 
+                       y=log(df_transformed_vars_train$DepDelay), 
+                       standardize= TRUE, intercept=TRUE, alpha=1, nfolds=3 )
+  # nfolds is 3 to reduce computational power needed for a very large dataset
+plot(out.lasso)
+coef(out.lasso, s=out.lasso$lambda.1se)
+idx.1se<-which(abs(coef(out.lasso, s=out.lasso$lambda.1se))>0) 
+rownames(coef(out.lasso, s=out.lasso$lambda.1se))[idx.1se]
+
+```
 
 #### 4.3.3 Adaptive LASSO
 
