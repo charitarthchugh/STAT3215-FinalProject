@@ -376,22 +376,21 @@ coef(out.lasso, s = out.lasso$lambda.1se)
 idx.1se <- which(abs(coef(out.lasso, s = out.lasso$lambda.1se)) > 0)
 rownames(coef(out.lasso, s = out.lasso$lambda.1se))[idx.1se]
 
-m_lasso = lm(log(DepDelay)~log(CarrierDelay)+log(TaxiIn)+log(Distance)+I(WeatherDelay^(-2))+log(NASDelay)+SecurityDelay+log(LateAircraftDelay), data=df_transformed_vars_train)
+m_lasso <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + log(Distance) + I(WeatherDelay^(-2)) + log(NASDelay) + SecurityDelay + log(LateAircraftDelay), data = df_transformed_vars_train)
 ```
 
 #### 4.3.3 Adaptive LASSO
 
 ```{r adaptive-lasso-model}
-
-ols.beta <- coef(lm.fit(x=cbind(1,x.train),y=y.train)) 
-alasso <- cv.glmnet(x=mod.mat[,-1], y=log(df_transformed_vars_train$DepDelay), type.measure="mse", alpha=1, nlambda=200,penalty=1/abs(ols.beta[-1]) ) 
-alasso.predicted <- predict(alasso, alasso$lambda.1se, new=x.test) 
-sse <- sum((y.test - alasso.predicted)**2) 
-alasso.out <- c(mse=sse/n.test, mae= mean(abs(y.test - alasso.predicted)), VEcv= (1-sse/syy.test)*100) 
-coef(alasso, s=alasso$lambda.1se) 
-idx_1se<-which(abs(coef(alasso, s=alasso$lambda.1se))>0) 
-rownames(coef(alasso, s=alasso$lambda.1se))[idx_1se]
-m_adaptive_lasso  = lm(log(DepDelay)~log(CarrierDelay)+log(TaxiIn)+log(Distance)+log(LateAircraftDelay), data = df_transformed_vars_train)
+ols.beta <- coef(lm.fit(x = cbind(1, x.train), y = y.train))
+alasso <- cv.glmnet(x = mod.mat[, -1], y = log(df_transformed_vars_train$DepDelay), type.measure = "mse", alpha = 1, nlambda = 200, penalty = 1 / abs(ols.beta[-1]))
+alasso.predicted <- predict(alasso, alasso$lambda.1se, new = x.test)
+sse <- sum((y.test - alasso.predicted)**2)
+alasso.out <- c(mse = sse / n.test, mae = mean(abs(y.test - alasso.predicted)), VEcv = (1 - sse / syy.test) * 100)
+coef(alasso, s = alasso$lambda.1se)
+idx_1se <- which(abs(coef(alasso, s = alasso$lambda.1se)) > 0)
+rownames(coef(alasso, s = alasso$lambda.1se))[idx_1se]
+m_adaptive_lasso <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + log(Distance) + log(LateAircraftDelay), data = df_transformed_vars_train)
 ```
 
 ```{r}
@@ -401,46 +400,45 @@ plot(alasso)
 #### 4.3.4 Elastic Net
 
 ```{r}
-models <- list() 
-results = data.frame(name=character(),alpha=numeric(),mse=numeric(),mae=numeric(),vecv=numeric())
-colnames(results) <- c("name","alpha","mse","mae","vecv")
+models <- list()
+results_elastic_net <- data.frame(name = character(), alpha = numeric(), mse = numeric(), mae = numeric(), vecv = numeric())
+colnames(results) <- c("name", "alpha", "mse", "mae", "vecv")
 for (i in 0:20) {
- name <- paste0("alpha",i/20,sep="")
- models[[name]] <- cv.glmnet(x.train, y.train, type.measure="mse", alpha=i/20,   family="gaussian")
- predicted <- predict(models[[name]], s=models[[name]]$lambda.1se, newx=x.test)
- sse <- sum((y.test - predicted)**2) 
- mse = sse/n.test
- mae <- mean(abs(y.test - predicted))
- vecv = (1-sse/syy.test)*100
- results = rbind(results, data.frame(name=name,alpha=i/20,mse=mse,mae=mae,vecv=vecv))
-} 
-results
-
+  name <- paste0("alpha", i / 20, sep = "")
+  models[[name]] <- cv.glmnet(x.train, y.train, type.measure = "mse", alpha = i / 20, family = "gaussian")
+  predicted <- predict(models[[name]], s = models[[name]]$lambda.1se, newx = x.test)
+  sse <- sum((y.test - predicted)**2)
+  mse <- sse / n.test
+  mae <- mean(abs(y.test - predicted))
+  vecv <- (1 - sse / syy.test) * 100
+  results_elastic_net <- rbind(results_elastic_net, data.frame(name = name, alpha = i / 20, mse = mse, mae = mae, vecv = vecv))
+}
+best_elastic_net_alpha <- results_elastic_net[order(-results_elastic_net$vecv), ][1, 3:5]
+best_elastic_net_alpha
 ```
 
 ```{r}
-coef(models$alpha0.3, s=models$alpha0.3$lambda.1se)
+coef(models$alpha0.3, s = models$alpha0.3$lambda.1se)
 models$alpha0.3
-idx.1se<-which(abs(coef(models$alpha0.3, s=models$alpha0.3$lambda.1se))>0)
-rownames(coef(models$alpha0.3, s=models$alpha0.3$lambda.1se))[idx.1se] 
-m_elastic_net = lm(log(DepDelay)~log(CarrierDelay)+log(TaxiIn)+I(WeatherDelay**(-2))+log(Distance)+log(LateAircraftDelay), data = df_transformed_vars_train)
+idx.1se <- which(abs(coef(models$alpha0.3, s = models$alpha0.3$lambda.1se)) > 0)
+rownames(coef(models$alpha0.3, s = models$alpha0.3$lambda.1se))[idx.1se]
+m_elastic_net <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + I(WeatherDelay**(-2)) + log(Distance) + log(LateAircraftDelay), data = df_transformed_vars_train)
 ```
 
 ### 4.3.5 SCAD
 
 ```{r}
-scad <- cv.ncvreg(X=mod.mat[,-1], y=log(df_transformed_vars_train$DepDelay), standardize= TRUE, intercept=TRUE, nfolds=3, penalty = "SCAD")
-scad.predicted <- predict(scad, which=scad$min, X=cbind(x.test), type="response") 
+scad <- cv.ncvreg(X = mod.mat[, -1], y = log(df_transformed_vars_train$DepDelay), standardize = TRUE, intercept = TRUE, nfolds = 3, penalty = "SCAD")
+scad.predicted <- predict(scad, which = scad$min, X = cbind(x.test), type = "response")
 sse <- sum((y.test - scad.predicted)**2)
-scad.out <- c(mse=sse/n.test, mae= mean(abs(y.test - scad.predicted)), VEcv= (1-sse/syy.test)*100)
-coef(scad, s=scad$lambda.1se)
-beta <- scad$fit$beta[,scad$min] 
-idx <-which(abs(beta)>0) 
+scad.out <- c(mse = sse / n.test, mae = mean(abs(y.test - scad.predicted)), VEcv = (1 - sse / syy.test) * 100)
+coef(scad, s = scad$lambda.1se)
+beta <- scad$fit$beta[, scad$min]
+idx <- which(abs(beta) > 0)
 names(beta)[idx]
 
 plot(scad)
-m_elastic_net = lm(log(DepDelay)~log(CarrierDelay)+log(TaxiIn)+I(WeatherDelay**(-2))+log(Distance)+log(LateAircraftDelay), data = df_transformed_vars_train)
-
+m_elastic_net <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + I(WeatherDelay**(-2)) + log(Distance) + log(LateAircraftDelay), data = df_transformed_vars_train)
 ```
 
 ### 4.4 Model Selection for Prediction
@@ -469,7 +467,7 @@ m8.out
 #### 4.4.2 LASSO Evaluation
 
 ```{r}
-lasso_predict = predict(out.lasso, newx = as.data.frame(x.test))
+lasso_predict <- predict(out.lasso, newx = as.data.frame(x.test))
 sse <- sum((y.test - lasso_predict)^2)
 lasso_metrics <- c(mse = sse / n.test, mae = mean(abs(y.test - lasso_predict)), VEcv = (1 - sse / syy.test) * 100)
 lasso_metrics
@@ -477,10 +475,20 @@ lasso_metrics
 
 #### 4.4.3 Adaptive LASSO Evaluation
 
+```{r}
+
+```
 
 #### 4.4.4 Elastic Net Evaluation
 
+```{r}
+
+```
+
 ### 4.4.5 SCAD Evaluation
+
+```         
+```
 
 ### 4.4.6 Control Evaluation
 
@@ -524,7 +532,6 @@ Original Paper:
  year={2017}, month={Oct}, pages={485–491} }
 ```
 
-MLA citation: 
-- Kalliguddi, Anish M., and Aera K. Leboulluec. "Predictive Modeling of Aircraft Flight Delay." Universal Journal of Management, vol. 5, no. 10, Oct. 2017, pp. 485--91, <https://doi.org/10.13189/ujm.2017.051003>.
+MLA citation: - Kalliguddi, Anish M., and Aera K. Leboulluec. "Predictive Modeling of Aircraft Flight Delay." Universal Journal of Management, vol. 5, no. 10, Oct. 2017, pp. 485--91, <https://doi.org/10.13189/ujm.2017.051003>.
 
 (We also referenced notes from Dr. Schifano on Blackboard frequently.)
