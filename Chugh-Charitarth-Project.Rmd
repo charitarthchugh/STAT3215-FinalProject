@@ -114,7 +114,7 @@ We can express this relationship as a mathematical equation:
 
 $$ y = \beta_{0} + \sum\limits_{i=1}^{m}\beta_{i}x_{i} + \epsilon $$
 
-In the original report and in this paper, there are no categorical variables to analyze so no numeric encoding is necessary. When regression is run with all eight quantitative regressors, we observed that all of the regressors were significant with an R-squared value of 0.9812, which is somewhat similar to the result from the original paper (with an R-squared value of 0.84). This indicates that the initial main MLR model can explain 98.12% of the variation in the data. Note that since we do not the exact training dataset used, reproducibility is limited, so we accept approximate results when attempting to replicate the procedure.
+In the original report and in this paper, there are no categorical variables to analyze so no numeric encoding is necessary. When regression is run with all eight quantitative regressors, we observed that all of the regressors were significant with an R-squared value of 0.9812, which is somewhat similar to the result from the original paper (with an R-squared value of 0.84). This indicates that the initial main MLR model can explain 98.12% of the variation in the data. Note that since we do not know the exact training dataset used, reproducibility is limited, so we accept approximate results when attempting to replicate the procedure.
 
 ```{r cache=TRUE}
 # run MLR with all 8 regressors
@@ -255,6 +255,8 @@ testTransform(pT, lambda = c(0, 0, 0, 0, -2, 0, 1, 0))
 # was advised to ignore power of -29 and leave untransformed
 ```
 
+The criterion for `testTransform()` is if the p-value is greater than 0.05, this means that there is no evidence that we need to change the power transform parameters. Even when removing these outliers, we still get very odd parameter estimates. For simplicity of analysis, we rounded each parameter to the nearest integer (except the -29 power associated with `SecurityDelay`, this is left untransformed), despite the fact that the p-value suggests our chosen transformation is not optimal. 
+
 ```{r responseTransform cache=TRUE}
 pT <- powerTransform(DepDelay ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
   log(Distance) + I(WeatherDelay^(-2)) + log(NASDelay) +
@@ -286,10 +288,14 @@ hist(ti,
 curve(dnorm(x, mean = m, sd = std), col = "darkblue", lwd = 2, add = TRUE, yaxt = "n")
 ```
 
+In a Normal Q-Q plot, if our assumption of normality is correct, we should see points plotted in a straight line. Based on the normal Q-Q plot above, most of the points seem to adhere to a linear form, so normality assumption may be adequately satisfied. We have also added a density histogram of residuals which appears to follow a normal distribution.
+
 ```{r ncv-transformed}
 # formal non-constant variance test
 ncvTest(m8)
 ```
+
+Based on our formal non-constant variance test, we reject the null hypothesis of a constant variance, thus heteroscedasticity is still an issue. The transformations we applied were not adequate enough to remedy completely; we will examine residual plots later to see this in detail.
 
 ```{r dataframe-setup}
 df_transformed_vars_train <- transform(df_train_shifted,
@@ -309,18 +315,32 @@ pairs.panels(df_transformed_vars_train[, 10:17],
 )
 ```
 
+Based on the scatterplots above, linearity does not appear to be significantly present between `DepDelay` and regressors. Collinearity is not an issue.
+
 ```{r residual-plots-transformed eval=FALSE}
 # residual plots: constant variance, linearity
 residualPlots(m8, type = "rstudent")
 ```
 
-### 4.3 Variable Selection for Discovery
+Some regressors have residuals with constant variance while others have more questionable distributions. Assumption of constant variance is not satisfied. Some of the residuals are dispersed randomly with no distinct pattern which help support the assumption of linearity, but we should still proceed with caution.
+
+### 4.3 Model Selection and Evaluation 
 
 In addition to transforming our variables so that they are better suited for a multiple linear regression model, our goal is to find an MLR model with fewer regressors with an equivalent if not greater predictive ability. We are selecting a model based on the principle of parsimony, or the idea that a "simpler" model with fewer regressors but is equally effective is preferred. We will utilize multiple methods of variable discovery and model selection, including subset selection and regularized methods.
 
 Subset selection is the process of iteratively going through models of different sizes, then selecting the best one based on AIC/BIC. The regularized methods we will use in the below code are LASSO, Adaptive LASSO, Elastic Net, and SCAD, each with slightly different methods of minimizing RSS (residual sum of squares) based on the number of regressors. This allows us to have an assortment of models to choose from.
 
 When comparing models fit on the same dataset with the same response variable and sample size, a model with larger $R^2_a$ is preferred, but smaller AIC. $R^2_a$ is an adjusted $R^2$ value which accounts for the size of the model. $$R^2_a=1-(\frac{n-1}{n-(p_c+1)})\frac{RSS_{p_C}}{SYY}$$ where $p_C$ is the number of regressors in the model, $RSS_{p_C}$ is the residual sum of squares, and $SYY$ is total variation.
+
+When we develop a regression model based on a given dataset, this model is more likely to understate variability in making future predictions via residual mean squared error (and thus its square root RMSE). We can also evaluate the predictive ability of a given regression model using cross validation procedures, which compares test data to predictions from provided regressor values. We use MSE, MAE, and VEcv as metrics to measure predictive capability.
+
+MSE (mean squared prediction error) is computed as: $$\frac{\sum_{i=1}^{n_H}(y_{H_i}-\hat{y}^*_{H_i})^2}{n_H}$$ where $y_{H_i}$ is the value of the response variable in validation case $i$, $\hat{y}^*_{H_i}$ is the predicted value for validation case $i$ based on the training dataset, and $n_H$ is the number of cases in the validation dataset. If this metric is relatively close to the square RMSE (denoted $\hat{\sigma}^2$), then $\hat{\sigma}^2$ is an adequate indication of this model's predictive ability. Otherwise if MSE is significantly larger than $\hat{\sigma}^2$, then MSE should be used instead.
+
+MAE (mean absolute prediction error) is the average absolute prediction error, and is less sensitive to outliers. MAE is computed as: $$\frac{\sum_{i=1}^{n_H}|y_{H_i}-\hat{y}^*_{H_i}|}{n_H}$$ Our goal is to find a model that minimizes both MSE and MAE, so that the model is more robust in predicting capability.
+
+VEcv is the amount of variance explained based on cross-validation, computed as: $$1-\frac{\sum_{i=1}^{n_H}(y_{H_i}-\hat{y}^*_{H_i})^2}{\sum_{i=1}^{n_H}(y_{H_i}-\bar{y}_{H_i})^2}$$ Where $\bar{y}_{H}$ is sample mean of test responses $y_{H_i}$ of all test observations.
+
+These three metrics as well as the selected regressors for the candidate model are displayed after each method's output.
 
 #### 4.3.1 Subset Selection
 
@@ -379,6 +399,7 @@ m8.out <- c(
 m8.out
 ```
 
+
 #### 4.3.2 LASSO
 
 ```{r}
@@ -406,9 +427,6 @@ lasso_metrics <- c(
   mse = sse / n.test,
   mae = mean(abs(y.test - lasso.predicted)), VEcv = (1 - sse / syy.test) * 100
 )
-coef(lasso_metrics, s = lasso.predicted$lambda.1se)
-idx_1se <- which(abs(coef(out.lasso, s = out.lasso$lambda.1se)) > 0)
-rownames(coef(out.lasso, s = out.lasso$lambda.1se))[idx_1se]
 lasso_metrics
 ```
 
@@ -493,56 +511,7 @@ m_elastic_net <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + I(WeatherD
 scad.out
 ```
 
-### 4.4 Model Selection for Prediction
-
-When we develop a regression model based on a given dataset, this model is more likely to understate variability in making future predictions via residual mean squared error (and thus its square root RMSE). We can also evaluate the predictive ability of a given regression model using cross validation procedures, which compares test data to predictions from provided regressor values. We use MSE, MAE, and VEcv as metrics to measure predictive capability.
-
-MSE (mean squared prediction error) is computed as: $$\frac{\sum_{i=1}^{n_H}(y_{H_i}-\hat{y}^*_{H_i})^2}{n_H}$$ where $y_{H_i}$ is the value of the response variable in validation case $i$, $\hat{y}^*_{H_i}$ is the predicted value for validation case $i$ based on the training dataset, and $n_H$ is the number of cases in the validation dataset. If this metric is relatively close to the square RMSE (denoted $\hat{\sigma}^2$), then $\hat{\sigma}^2$ is an adequate indication of this model's predictive ability. Otherwise if MSE is significantly larger than $\hat{\sigma}^2$, then MSE should be used instead.
-
-MAE (mean absolute prediction error) is the average absolute prediction error, and is less sensitive to outliers. MAE is computed as: $$\frac{\sum_{i=1}^{n_H}|y_{H_i}-\hat{y}^*_{H_i}|}{n_H}$$ Our goal is to find a model that minimizes both MSE and MAE, so that the model is more robust in predicting capability.
-
-VEcv is the amount of variance explained based on cross-validation, computed as: $$1-\frac{\sum_{i=1}^{n_H}(y_{H_i}-\hat{y}^*_{H_i})^2}{\sum_{i=1}^{n_H}(y_{H_i}-\bar{y}_{H_i})^2}$$ Where $\bar{y}_{H}$ is sample mean of test responses $y_{H_i}$ of all test observations.
-
-#### 4.4.1 Subset Selection Evaluation
-
-```{r modelEvaluations}
-m7.predicted <- predict(m7, newdata = as.data.frame(x.test))
-sse <- sum((y.test - m7.predicted)^2)
-m7.out <- c(mse = sse / n.test, mae = mean(abs(y.test - m7.predicted)), VEcv = (1 - sse / syy.test) * 100)
-m7.out
-m8.predicted <- predict(m8, newdata = as.data.frame(x.test))
-sse <- sum((y.test - m8.predicted)^2)
-m8.out <- c(mse = sse / n.test, mae = mean(abs(y.test - m8.predicted)), VEcv = (1 - sse / syy.test) * 100)
-m8.out
-```
-
-#### 4.4.2 LASSO Evaluation
-
-```{r}
-lasso_predict <- predict(out.lasso, newx = as.data.frame(x.test))
-sse <- sum((y.test - lasso_predict)^2)
-lasso_metrics <- c(mse = sse / n.test, mae = mean(abs(y.test - lasso_predict)), VEcv = (1 - sse / syy.test) * 100)
-lasso_metrics
-```
-
-#### 4.4.3 Adaptive LASSO Evaluation
-
-```{r}
-
-```
-
-#### 4.4.4 Elastic Net Evaluation
-
-```{r}
-
-```
-
-### 4.4.5 SCAD Evaluation
-
-```         
-```
-
-### 4.4.6 Control Evaluation
+### 4.3.6 Control Evaluation
 
 ```{r control-eval}
 m1 <- lm(exp(logDepDelay) ~ exp(logCarrierDelay)
@@ -559,7 +528,10 @@ m1.out <- c(
 m1.out
 ```
 
-### 4.5 Model Summary
+### 4.4 Model Summary
+
+The following are candidate models with their regressors, and predictive performance metrics.
+
 ```{r}
 # mod.summary <- data.frame(
 # method=c('Subset Selection 1', 'Subset Selection 2', 'LASSO', 'Adaptive LASSO', 'Elastic Net', 'SCAD'),
@@ -592,6 +564,11 @@ mod_summary <- cbind(mod_summary, regressors)
 
 mod_summary
 ```
+
+To determine the best model, we aim to have the lowest mean standard prediction error (MSE), mean absolute prediction error (MAE), and largest proportion of variance explained by cross validation. We found that the model with all eight transformed regressors has the lowest MSE and MSE, and highest VEcv. This model was selected by both the subset selection method and SCAD method. We noted that in other candidate models, the most likely regressor to be excluded first was `log(TaxiOut)`. 
+
+In comparison to the original, untransformed model, we have significantly reduced the mean standard prediction error and mean absolute prediction error, but have in turn significantly reduced variance explained by cross validation. By attempting to mold the erratic variance from the data to fit our MLR assumptions, we sacrifice some interpretability. 
+
 
 ## Section 5. Discussion and Conclusion
 
