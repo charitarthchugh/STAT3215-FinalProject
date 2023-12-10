@@ -2151,9 +2151,9 @@ with the full model with all eight regressors as expected from the
 original report. We can write out the multiple linear equation generated
 from this process, with coefficients rounded to four significant digits
 like the original report: Dep Delay = 19.40 + (1.007) CarrierDelay +
-(1.012) Late Aircraft Delay + (0.9236) NAS Delay + (0.9918) Weather
-Delay - (0.7595) Taxi Out - (0.7827) TaxiIn + (0.9821) SecurityDelay +
-(3.631)(10^{-3}) Distance</p>
+(1.012) Late Aircraft Delay + (0.9252) NAS Delay + (0.991) Weather Delay
+- (0.757) Taxi Out - (0.7858) TaxiIn + (0.99924) SecurityDelay +
+(3.634)(10^{-3}) Distance</p>
 <p>The coefficients of this MLR model are approximately within 0.2 units
 of those generated in the original paper. Based on this, we can infer
 some information about the relationship between the regressors and the
@@ -2851,20 +2851,20 @@ scad.out</code></pre>
 </div>
 <div id="control-evaluation" class="section level3">
 <h3>4.3.6 Control Evaluation</h3>
-<pre class="r"><code>m1 &lt;- lm(exp(logDepDelay) ~ exp(logCarrierDelay)
-  + exp(logTaxiIn) + exp(logTaxiOut) +
-  exp(logDistance) + I(inv2WeatherDelay^(-1 / 2))
-  + exp(logNASDelay) + SecurityDelay1 +
-  exp(logLateAircraftDelay), data = df_transformed_vars_train)
-m1.predicted &lt;- predict(m1, newdata = as.data.frame(x.test))
+<pre class="r"><code>x.test&lt;- as.matrix(df_test[,1:9]) 
+y.test&lt;- df_test$DepDelay
+x.train &lt;- as.matrix(df_train[,1:9])
+y.train &lt;- df_train$logDepDelay
+n.test &lt;- dim(df_test)[1]
+syy.test &lt;- (n.test-1)*var(y.test)
+
+m1 &lt;- lm(DepDelay ~ ., data = df_train)
+m1.predicted &lt;- predict(m1, newdata=as.data.frame(x.test))
 sse &lt;- sum((y.test - m1.predicted)^2)
-m1.out &lt;- c(
-  mse = sse / n.test, mae = mean(abs(y.test - m7.predicted)),
-  VEcv = (1 - sse / syy.test) * 100
-)
+m1.out &lt;- c(mse=sse/n.test, mae= mean(abs(y.test - m7.predicted)), VEcv= (1-sse/syy.test)*100) 
 m1.out</code></pre>
-<pre><code>##           mse           mae          VEcv 
-##  1.095271e+04  5.868347e-01 -2.038267e+06</code></pre>
+<pre><code>##       mse       mae      VEcv 
+## 116.00515  70.53021  98.12467</code></pre>
 </div>
 <div id="model-summary" class="section level3">
 <h3>4.4 Model Summary</h3>
