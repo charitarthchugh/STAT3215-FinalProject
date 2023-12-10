@@ -234,7 +234,7 @@ length(df_train_shifted[, 1]) == length(df_train_shifted_no_outliers[, 1]) + 442
 # verifying outliers were removed
 ```
 
-```{r cache=True}
+```{r}
 pT <- powerTransform(
   cbind(
     CarrierDelay, TaxiIn, TaxiOut, Distance, WeatherDelay,
@@ -253,7 +253,7 @@ testTransform(pT, lambda = c(0, 0, 0, 0, -2, 0, 1, 0))
 
 The criterion for `testTransform()` is if the p-value is greater than 0.05, this means that there is no evidence that we need to change the power transform parameters. Even when removing these outliers, we still get very odd parameter estimates. For simplicity of analysis, we rounded each parameter to the nearest integer (except the -29 power associated with `SecurityDelay`, this is left untransformed), despite the fact that the p-value suggests our chosen transformation is not optimal. 
 
-```{r responseTransform cache=TRUE}
+```{r responseTransform, cache=TRUE}
 pT <- powerTransform(DepDelay ~ log(CarrierDelay) + log(TaxiIn) + log(TaxiOut) +
   log(Distance) + I(WeatherDelay^(-2)) + log(NASDelay) +
   SecurityDelay + log(LateAircraftDelay), df_train_shifted_no_outliers)
@@ -303,7 +303,7 @@ df_transformed_vars_train <- transform(df_train_shifted,
 )
 ```
 
-```{r pairs-panels-transformed eval=FALSE}
+```{r pairs-panels-transformed}
 # transformed scatterplot matrix: normality, linearity
 pairs.panels(df_transformed_vars_train[, 10:17],
   ellipses = FALSE, hist.col = "cyan",
@@ -313,7 +313,7 @@ pairs.panels(df_transformed_vars_train[, 10:17],
 
 Based on the scatterplots above, linearity does not appear to be significantly present between `DepDelay` and regressors. Collinearity is not an issue.
 
-```{r residual-plots-transformed eval=FALSE}
+```{r residual-plots-transformed}
 # residual plots: constant variance, linearity
 residualPlots(m8, type = "rstudent")
 ```
@@ -460,7 +460,7 @@ plot(alasso)
 ```{r}
 models <- list()
 results_elastic_net <- data.frame(name = character(), alpha = numeric(), mse = numeric(), mae = numeric(), Vecv = numeric())
-colnames(results) <- c("name", "alpha", "mse", "mae", "Vecv")
+colnames(results_elastic_net) <- c("name", "alpha", "mse", "mae", "Vecv")
 for (i in 0:20) {
   name <- paste0("alpha", i / 20, sep = "")
   models[[name]] <- cv.glmnet(x.train, y.train,
