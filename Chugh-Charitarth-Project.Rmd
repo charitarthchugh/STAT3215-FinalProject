@@ -399,6 +399,17 @@ m_lasso <- lm(
     I(WeatherDelay^(-2)) + log(NASDelay) + SecurityDelay + log(LateAircraftDelay),
   data = df_transformed_vars_train
 )
+# Calculate Metrics
+lasso.predicted <- predict(out.lasso, out.lasso$lambda.1se, new = x.test)
+sse <- sum((y.test - lasso.predicted)**2)
+lasso_metrics <- c(
+  mse = sse / n.test,
+  mae = mean(abs(y.test - lasso.predicted)), VEcv = (1 - sse / syy.test) * 100
+)
+coef(lasso_metrics, s = lasso.predicted$lambda.1se)
+idx_1se <- which(abs(coef(out.lasso, s = out.lasso$lambda.1se)) > 0)
+rownames(coef(out.lasso, s = out.lasso$lambda.1se))[idx_1se]
+lasso_metrics
 ```
 
 #### 4.3.3 Adaptive LASSO
@@ -423,6 +434,7 @@ m_adaptive_lasso <- lm(
     log(TaxiIn) + log(Distance) + log(LateAircraftDelay),
   data = df_transformed_vars_train
 )
+alasso.out
 ```
 
 ```{r}
@@ -433,8 +445,8 @@ plot(alasso)
 
 ```{r}
 models <- list()
-results_elastic_net <- data.frame(name = character(), alpha = numeric(), mse = numeric(), mae = numeric(), vecv = numeric())
-colnames(results) <- c("name", "alpha", "mse", "mae", "vecv")
+results_elastic_net <- data.frame(name = character(), alpha = numeric(), mse = numeric(), mae = numeric(), Vecv = numeric())
+colnames(results) <- c("name", "alpha", "mse", "mae", "Vecv")
 for (i in 0:20) {
   name <- paste0("alpha", i / 20, sep = "")
   models[[name]] <- cv.glmnet(x.train, y.train,
@@ -449,9 +461,10 @@ for (i in 0:20) {
   mae <- mean(abs(y.test - predicted))
   vecv <- (1 - sse / syy.test) * 100
   results_elastic_net <- rbind(results_elastic_net, data.frame(
-    name = name, alpha = i / 20, mse = mse, mae = mae, vecv = vecv
+    name = name, alpha = i / 20, mse = mse, mae = mae, Vecv = vecv
   ))
 }
+results_elastic_net[7, ]
 ```
 
 ```{r}
@@ -469,6 +482,7 @@ scad <- cv.ncvreg(X = mod.mat[, -1], y = log(df_transformed_vars_train$DepDelay)
 scad.predicted <- predict(scad, which = scad$min, X = cbind(x.test), type = "response")
 sse <- sum((y.test - scad.predicted)**2)
 scad.out <- c(mse = sse / n.test, mae = mean(abs(y.test - scad.predicted)), VEcv = (1 - sse / syy.test) * 100)
+
 coef(scad, s = scad$lambda.1se)
 beta <- scad$fit$beta[, scad$min]
 idx <- which(abs(beta) > 0)
@@ -476,6 +490,7 @@ names(beta)[idx]
 
 plot(scad)
 m_elastic_net <- lm(log(DepDelay) ~ log(CarrierDelay) + log(TaxiIn) + I(WeatherDelay**(-2)) + log(Distance) + log(LateAircraftDelay), data = df_transformed_vars_train)
+scad.out
 ```
 
 ### 4.4 Model Selection for Prediction
@@ -545,6 +560,38 @@ m1.out
 ```
 
 ### 4.5 Model Summary
+```{r}
+# mod.summary <- data.frame(
+# method=c('Subset Selection 1', 'Subset Selection 2', 'LASSO', 'Adaptive LASSO', 'Elastic Net', 'SCAD'),
+#                  regressors=c(
+# 'log(Carrier Delay), log(Taxi In),  log(Distance), (WeatherDelay)^(-2), log(NAS Delay), SecurityDelay, log(Late Aircraft Delay)',
+# 'log(Carrier Delay), log(Taxi In), log(Taxi Out), log(Distance), (WeatherDelay)^(-2), log(NAS Delay), SecurityDelay, log(Late Aircraft Delay)',
+#  'log(Carrier Delay), log(Taxi In),  log(Distance), (WeatherDelay)^(-2), log(NAS Delay), SecurityDelay, log(Late Aircraft Delay)',
+# 'log(Carrier Delay), log(Taxi In), log(Distance),  log(Late Aircraft Delay)',
+# 'log(Carrier Delay), log(Taxi In),  log(Distance), (WeatherDelay)^(-2), log(NAS Delay), SecurityDelay, log(Late Aircraft Delay)',
+# mod_summary = data.frame(c(m7.out,m8.out,lasso_metrics, alasso.out,results_elastic_net[7,][3:5],scad.out))
+methods <- c(
+  "Subset Selection1", "Subset Selection2",
+  "Lasso", "AdaptiveLasso", "ElasticNet", "SCAD"
+)
+elastic_net <- results_elastic_net[7, ][3:5]
+mod_summary <- rbind(m7.out, m8.out)
+mod_summary <- rbind(mod_summary, lasso_metrics)
+mod_summary <- rbind(mod_summary, alasso.out)
+mod_summary <- rbind(mod_summary, elastic_net)
+mod_summary <- rbind(mod_summary, scad.out)
+mod_summary <- cbind(methods, mod_summary)
+mod_summary <- as.data.frame(mod_summary)
+
+# Add Regressors used in each method using names(coef(model))
+regressors <- cbind(
+  toString(names(m7$coefficients)[-1]), toString(names(m8$coefficients)[-1]), toString(names(out.lasso$glmnet.fit$beta[, 1])[-1]), toString(names(alasso$glmnet.fit$beta[, 1])[-1]),
+  toString(names(models$alpha0.3$glmnet.fit$beta[, 1])[-1]), toString(names(scad$fit$beta[, 1])[-1])
+)
+mod_summary <- cbind(mod_summary, regressors)
+
+mod_summary
+```
 
 ## Section 5. Discussion and Conclusion
 
